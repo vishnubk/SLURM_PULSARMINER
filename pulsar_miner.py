@@ -353,10 +353,9 @@ def execute_and_log(command, work_dir, log_abspath, dict_envs={}, flag_append=0,
 
 
 
-def sift_candidates(work_dir, LOG_basename,  dedispersion_dir, observation_basename, segment_label, chunk_label, list_zmax, jerksearch_zmax, jerksearch_wmax, flag_remove_duplicates, flag_DM_problems, flag_remove_harmonics, minimum_numDMs_where_detected, minimum_acceptable_DM=2.0, period_to_search_min_s=0.001, period_to_search_max_s=15.0, verbosity_level=0 ):
+def sift_candidates(work_dir, LOG_basename, LOG_dir,  dedispersion_dir, observation_basename, segment_label, chunk_label, list_zmax, jerksearch_zmax, jerksearch_wmax, flag_remove_duplicates, flag_DM_problems, flag_remove_harmonics, minimum_numDMs_where_detected, minimum_acceptable_DM=2.0, period_to_search_min_s=0.001, period_to_search_max_s=15.0, verbosity_level=0 ):
         work_dir_basename = os.path.basename(work_dir)
         string_ACCEL_files_dir = os.path.join(dedispersion_dir, observation_basename, segment_label, chunk_label)
-
         best_cands_filename = "%s/best_candidates_%s.siftedcands" % (work_dir, work_dir_basename)
         if verbosity_level >= 3:
                 print "sift_candidates:: best_cands_filename = %s" % (best_cands_filename)
@@ -375,7 +374,7 @@ def sift_candidates(work_dir, LOG_basename,  dedispersion_dir, observation_basen
                 print "Found: ", glob.glob(string_glob_jerk_files)
                 
         list_ACCEL_files = list_ACCEL_files + glob.glob(string_glob_jerk_files)
-
+        
         if verbosity_level >= 3:
                 print
                 print "ACCEL files found: ", list_ACCEL_files
@@ -2506,6 +2505,7 @@ def main():
 
                                     config.dict_search_structure[obs][seg][ck]['candidates'] = sift_candidates( work_dir_chunk,
                                                                                                                 LOG_basename,
+                                                                                                                LOG_dir,
                                                                                                                 dir_dedispersion,
                                                                                                                 obs,
                                                                                                                 seg,
