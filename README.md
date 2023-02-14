@@ -1,2 +1,4 @@
-# SLURM_PULSARMINER
-This is a Slurm Wrapper around Pulsarminer built to run on HPC Clusters
+# **A Slurm Wrapper Around PULSARMINER/PRESTO.**
+
+
+This is a Slurm Wrapper around PULSARMINER/PRESTO built to run on HPC Clusters. 
