@@ -401,9 +401,13 @@ def main():
             output_dir = os.path.join(cluster, epoch, beam, "03_DEDISPERSION", observation_name_no_extension, time_segment, chunk_label)
             output_dir = os.path.abspath(output_dir)
             mkdir_p(output_dir)
-
-            dedisp_script = '''dedisp=$(sbatch --parsable --job-name=dedisp --output=$logs/%s_dedisp_%s_%s_%s_%s_batch_%d.out --error=$logs/%s_dedisp_%s_%s_%s_%s_batch_%d.err -p gpu.q --gres=gpu:1 --export=ALL --cpus-per-task=%d --time=%s --mem=%s --wrap="%s/DEDISPERSE_AND_COPY_BACK.sh %s %s %s %s %s %.2f %.2f %d %d %s %s %s %s")''' \
-            %(cluster, epoch, beam, time_segment, chunk_label, batch_number, cluster, epoch, beam, time_segment, chunk_label, batch_number, dedisp_cpu_cores, dedisp_wall_clock, dedisp_ram, cwd, singularity_image, mount_path, code_directory, full_data_path, rfifind_mask, dm_loop_low, dm_loop_high, dedisp_cpu_cores, dedisp_cpu_cores, time_segment, chunk_label, dir_dedispersion, output_dir)
+            if dedisp_partition == 'gpu.q':
+                dedisp_script = '''dedisp=$(sbatch --parsable --job-name=dedisp --output=$logs/%s_dedisp_%s_%s_%s_%s_batch_%d.out --error=$logs/%s_dedisp_%s_%s_%s_%s_batch_%d.err -p gpu.q --gres=gpu:1 --export=ALL --cpus-per-task=%d --time=%s --mem=%s --wrap="%s/DEDISPERSE_AND_COPY_BACK.sh %s %s %s %s %s %.2f %.2f %d %d %s %s %s %s")''' \
+                %(cluster, epoch, beam, time_segment, chunk_label, batch_number, cluster, epoch, beam, time_segment, chunk_label, batch_number, dedisp_cpu_cores, dedisp_wall_clock, dedisp_ram, cwd, singularity_image, mount_path, code_directory, full_data_path, rfifind_mask, dm_loop_low, dm_loop_high, dedisp_cpu_cores, dedisp_cpu_cores, time_segment, chunk_label, dir_dedispersion, output_dir)
+            else:
+                 dedisp_script = '''dedisp=$(sbatch --parsable --job-name=dedisp --output=$logs/%s_dedisp_%s_%s_%s_%s_batch_%d.out --error=$logs/%s_dedisp_%s_%s_%s_%s_batch_%d.err -p %s --export=ALL --cpus-per-task=%d --time=%s --mem=%s --wrap="%s/DEDISPERSE_AND_COPY_BACK.sh %s %s %s %s %s %.2f %.2f %d %d %s %s %s %s")''' \
+                %(cluster, epoch, beam, time_segment, chunk_label, batch_number, cluster, epoch, beam, time_segment, chunk_label, batch_number, dedisp_partition, dedisp_cpu_cores, dedisp_wall_clock, dedisp_ram, cwd, singularity_image, mount_path, code_directory, full_data_path, rfifind_mask, dm_loop_low, dm_loop_high, dedisp_cpu_cores, dedisp_cpu_cores, time_segment, chunk_label, dir_dedispersion, output_dir)
+                 
             f.write('########## Starting batch %d of %d ##########' %(batch_number, total_batches) + '\n')
             f.write('###################################### Running Dedispersion on Cluster %s, Epoch %s, Beam %s Segment %s, Chunk %s using %d CPUs   ##################################################################' %(cluster, epoch, beam, time_segment,chunk_label, dedisp_cpu_cores) + '\n')
             f.write(dedisp_script + '\n' + '\n')
@@ -480,8 +484,13 @@ def main():
             output_dir = os.path.join(cluster, epoch, beam, "03_DEDISPERSION", observation_name_no_extension, time_segment, chunk_label)
             output_dir = os.path.abspath(output_dir)
             mkdir_p(output_dir)
-            dedisp_script = '''dedisp=$(sbatch --parsable --job-name=dedisp --output=$logs/%s_dedisp_%s_%s_%s_%s_batch_%d.out --error=$logs/%s_dedisp_%s_%s_%s_%s_batch_%d.err -p gpu.q --gres=gpu:1 --export=ALL --cpus-per-task=%d --time=%s --mem=%s --wrap="%s/DEDISPERSE_AND_COPY_BACK.sh %s %s %s %s %s %.2f %.2f %d %d %s %s %s %s")''' \
-            %(cluster, epoch, beam, time_segment, chunk_label, batch_number, cluster, epoch, beam, time_segment, chunk_label, batch_number, dedisp_cpu_cores, dedisp_wall_clock, dedisp_ram, cwd, singularity_image, mount_path, code_directory ,full_data_path, rfifind_mask, dm_loop_low, dm_loop_high, dedisp_cpu_cores, dedisp_cpu_cores, time_segment, chunk_label, dir_dedispersion, output_dir)
+            if dedisp_partition == 'gpu.q':
+                dedisp_script = '''dedisp=$(sbatch --parsable --job-name=dedisp --output=$logs/%s_dedisp_%s_%s_%s_%s_batch_%d.out --error=$logs/%s_dedisp_%s_%s_%s_%s_batch_%d.err -p gpu.q --gres=gpu:1 --export=ALL --cpus-per-task=%d --time=%s --mem=%s --wrap="%s/DEDISPERSE_AND_COPY_BACK.sh %s %s %s %s %s %.2f %.2f %d %d %s %s %s %s")''' \
+                %(cluster, epoch, beam, time_segment, chunk_label, batch_number, cluster, epoch, beam, time_segment, chunk_label, batch_number, dedisp_cpu_cores, dedisp_wall_clock, dedisp_ram, cwd, singularity_image, mount_path, code_directory ,full_data_path, rfifind_mask, dm_loop_low, dm_loop_high, dedisp_cpu_cores, dedisp_cpu_cores, time_segment, chunk_label, dir_dedispersion, output_dir)
+            else:
+                 dedisp_script = '''dedisp=$(sbatch --parsable --job-name=dedisp --output=$logs/%s_dedisp_%s_%s_%s_%s_batch_%d.out --error=$logs/%s_dedisp_%s_%s_%s_%s_batch_%d.err -p %s --export=ALL --cpus-per-task=%d --time=%s --mem=%s --wrap="%s/DEDISPERSE_AND_COPY_BACK.sh %s %s %s %s %s %.2f %.2f %d %d %s %s %s %s")''' \
+                %(cluster, epoch, beam, time_segment, chunk_label, batch_number, cluster, epoch, beam, time_segment, chunk_label, batch_number, dedisp_partition, dedisp_cpu_cores, dedisp_wall_clock, dedisp_ram, cwd, singularity_image, mount_path, code_directory ,full_data_path, rfifind_mask, dm_loop_low, dm_loop_high, dedisp_cpu_cores, dedisp_cpu_cores, time_segment, chunk_label, dir_dedispersion, output_dir)
+                 
             f.write('########## Starting batch %d of %d ##########' %(batch_number, total_batches) + '\n')
             f.write('###################################### Running Dedispersion on Cluster %s, Epoch %s, Beam %s Segment %s, Chunk %s using %d CPUs   ##################################################################' %(cluster, epoch, beam, time_segment,chunk_label, dedisp_cpu_cores) + '\n')
             f.write(dedisp_script + '\n' + '\n')
