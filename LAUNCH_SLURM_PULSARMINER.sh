@@ -182,8 +182,8 @@ while true; do
   fi
 
   # Wait 10 minutes before checking again
-  echo "Waiting for folding script to be created. Going to sleep for 15 minutes."
-  sleep 900
+  echo "Waiting for folding script to be created. Going to sleep for 10 minutes."
+  sleep 600
 done
 
 

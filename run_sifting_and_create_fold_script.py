@@ -324,13 +324,13 @@ def create_fold_script_per_observation(pm_config, LOG_dir, dir_dedispersion, wor
                                             count_folded_raw = count_folded_raw + 1
 
 
-            os.chdir(work_dir_candidate_folding)
-            cmd_pm_run_multithread = "%s/pm_run_multithread -cmdfile %s -ncpus %d" % (working_dir, file_script_fold_abspath, pm_config.num_simultaneous_folds)
-            print
-            print 
-            print "5) CANDIDATE FOLDING - Now running:"
-            print "%s" % cmd_pm_run_multithread
-            os.system(cmd_pm_run_multithread)
+            #os.chdir(work_dir_candidate_folding)
+            #cmd_pm_run_multithread = "%s/pm_run_multithread -cmdfile %s -ncpus %d" % (working_dir, file_script_fold_abspath, pm_config.num_simultaneous_folds)
+            #print
+            #print 
+            #print "5) CANDIDATE FOLDING - Now running:"
+            #print "%s" % cmd_pm_run_multithread
+            #os.system(cmd_pm_run_multithread)
 
 
 def main():
