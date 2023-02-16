@@ -54,6 +54,7 @@ fi
 ## Copy Results back
 
 rsync -Pav $working_dir/*ACCEL*  $output_dir
+rsync -Pav $working_dir/*.inf  $output_dir
 
 #Clean Up
 rm -rf $working_dir

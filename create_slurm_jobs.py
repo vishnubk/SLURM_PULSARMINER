@@ -385,7 +385,7 @@ def main():
         f.write('#!/bin/bash' + '\n')
         f.write("logs='slurm_job_logs/'" + '\n')
         f.write('mkdir -p $logs' + '\n')
-        f.write('epoch=%s'%epoch + '\n')
+        #f.write('epoch=%s'%epoch + '\n')
         f.write('data_path=%s'%full_data_path + '\n')
         f.write('\n')
         slurmids=""
@@ -559,7 +559,7 @@ def main():
         f.write(sift_and_create_fold_script + '\n' + '\n')
         f.write('slurmids="$slurmids:$sift_script"' + '\n')
                     
-
+   
 
 
 

@@ -22,6 +22,7 @@ mkdir -p $working_dir
 rsync -Pav $pm_config $working_dir
 rsync -Pav $raw_data $working_dir
 rsync -Pav $rfifind_mask $working_dir
+rsync -Pav $code_dir/pm_run_multithread $working_dir
 
 basename_rawdata=$(basename "$raw_data")
 raw_data=${working_dir}/${basename_rawdata}
@@ -32,7 +33,7 @@ pm_config=${working_dir}/${basename_config}
 if [ $fold_timeseries == "1" ]; then
   rsync -Pav $search_results $working_dir
 else
-  rsync -Pav --exclude=*.{dat,inf} $search_results $working_dir
+  rsync -Pav --exclude=*.{dat} $search_results $working_dir
 
 fi
 
@@ -47,4 +48,4 @@ rsync -Pav ${working_dir}/04_SIFTING $previous_results
 rsync -Pav ${working_dir}/05_FOLDING $previous_results
 
 # #Clean Up
-rm -rf $working_dir
+#rm -rf $working_dir

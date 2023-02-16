@@ -446,11 +446,12 @@ def sift_candidates(work_dir, LOG_basename, LOG_dir,  dedispersion_dir, observat
 
 
 
-def fold_candidate(work_dir, LOG_basename, raw_datafile, dir_dedispersion, obs, seg, ck, T_obs_s, candidate, ignorechan_list, mask, other_flags_prepfold="", presto_env=os.environ['PRESTO'], verbosity_level=0, flag_LOG_append=1, what_fold="rawdata", num_simultaneous_folds=1):
+def fold_candidate(work_dir, LOG_basename, LOG_dir, raw_datafile, dir_dedispersion, obs, seg, ck, T_obs_s, candidate, ignorechan_list, mask, other_flags_prepfold="", presto_env=os.environ['PRESTO'], verbosity_level=0, flag_LOG_append=1, what_fold="rawdata", num_simultaneous_folds=1):
         log_abspath = "%s/LOG_%s.txt" % (LOG_dir, LOG_basename)
         dict_env = {'PRESTO': presto_env, 'PATH': "%s/bin:%s" % (presto_env, os.environ['PATH']), 'LD_LIBRARY_PATH': "%s/lib:%s" % (presto_env, os.environ['LD_LIBRARY_PATH'])}
         cand = candidate
         dir_accelfile = "%s/%s/%s/%s" % (dir_dedispersion, obs, seg, ck)
+        
         cand_zmax = cand.filename.split("ACCEL_")[-1].split("_JERK")[0]
 
         if "JERK_" in os.path.basename(cand.filename):
@@ -2726,4 +2727,5 @@ def main():
                     print "%s" % cmd_pm_run_multithread
                     os.system(cmd_pm_run_multithread)
                     
-#main()
+if __name__ == "__main__":
+        main()
