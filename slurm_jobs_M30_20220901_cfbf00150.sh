@@ -2,7 +2,6 @@
 logs='slurm_job_logs/'
 mkdir -p $logs
 data_path=/hercules/scratch/vishnu/SLURM_PULSARMINER/M30_20220901_cfbf00150.fil
-maxjobs=$(sacctmgr list associations format=user,maxsubmitjobs -n | grep $user | awk '{print $2}')
 
 ########## Starting batch 1 of 3 ##########
 ###################################### Running Dedispersion on Cluster M30, Epoch 20220901, Beam cfbf00150 Segment full, Chunk ck00 using 48 CPUs   ##################################################################
