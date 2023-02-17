@@ -142,7 +142,7 @@ def call_pulsarminer_birdies(cluster, epoch, beam, pm_config, LOG_dir, verbosity
     #dir_birdies = os.path.join(pm_config.root_workdir, "02_BIRDIES")
     dir_birdies = os.path.join(cluster, epoch, beam, "02_BIRDIES")
     #Copy common birdie files to the working directory
-    os.system("cp %s %s" % ("common_birdies.txt", pm_config.root_workdir))
+    #os.system("cp %s %s" % ("common_birdies.txt", pm_config.root_workdir, dir_birdies))
 
     if pm_config.flag_step_zaplist == 1:
 
@@ -153,6 +153,8 @@ def call_pulsarminer_birdies(cluster, epoch, beam, pm_config, LOG_dir, verbosity
             if not os.path.exists(dir_birdies):         
                 os.mkdir(dir_birdies)
             time.sleep(0.1)
+            #Copy common birdie files to the working directory
+            os.system("cp %s %s" % ("common_birdies.txt", dir_birdies))
             print "Running prepdata to create 0-DM and topocentric time series of \"%s\"..." % (pm_config.list_Observations.file_nameonly), ; sys.stdout.flush()
             LOG_basename = "02a_prepdata_%s" % (pm_config.list_Observations.file_nameonly)
             prepdata( pm_config.list_Observations.file_abspath,
@@ -301,11 +303,12 @@ def main():
 
     # Single observation object
     pm_config.list_Observations          = Observation(pm_config.list_datafiles_abspath, pm_config.data_type)
-
+    dir_birdies = os.path.join(cluster, epoch, beam, "02_BIRDIES")
+    mkdir_p(dir_birdies)
     # Add the common birdies file
-    pm_config.file_common_birdies = os.path.join(pm_config.root_workdir, "common_birdies.txt")
+    pm_config.file_common_birdies = os.path.join(dir_birdies, "common_birdies.txt")
     survey_config = pm_config.dict_survey_configuration
-    LOG_dir = os.path.join(pm_config.root_workdir, "LOG")
+    LOG_dir = os.path.join(cluster, epoch, beam, "LOG")
     
     if not os.path.exists(LOG_dir): 
          os.mkdir(LOG_dir)

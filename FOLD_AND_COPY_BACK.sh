@@ -22,8 +22,7 @@ mkdir -p $working_dir
 if [ $fold_timeseries == 1 ]; then
   rsync -Pav $search_results $working_dir
 else
-  rsync -Pav --exclude='*.dat' $search_results $working_dir
-  
+  rsync -Pav --exclude='*.dat' $search_results $working_dir  
    
 fi
 
