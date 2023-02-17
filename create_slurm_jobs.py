@@ -562,7 +562,7 @@ def main():
    
 
 
-
+maxjobs=$(sacctmgr list associations format=user,maxsubmitjobs -n | grep $user | awk '{print $2}')
 if __name__ == '__main__':
     main()
 

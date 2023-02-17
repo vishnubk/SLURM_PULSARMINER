@@ -157,20 +157,20 @@ while true; do
     num_lines=$(wc -l < $fold_script_filename)
 
     if [ "$num_lines" -gt 0 ]; then
-      # Divide the lines into batches of 48 or less
-      for i in $(seq 0 47 $((num_lines - 1))); do
+      # Divide the lines into batches of $fold_cpus_per_task or less
+      for i in $(seq 0 $((fold_cpus_per_task - 1)) $((num_lines - 1))); do
         # Calculate the number of lines in this batch
         batch_size=$((num_lines - i))
-        if [ "$batch_size" -gt 48 ]; then
-          batch_size=48
+        if [ "$batch_size" -gt "$fold_cpus_per_task" ]; then
+          batch_size=$fold_cpus_per_task
         fi
 
         # Get the lines for this batch and write them to a temporary file
         start=$((i + 1))
         end=$((i + batch_size))
-        sed -n "${start},${end}p" $fold_script_filename > ${CLUSTER}_${EPOCH}_${BEAM}_fold_commands_batch.txt
+        sed -n "${start},${end}p" $fold_script_filename > ${CLUSTER}_${EPOCH}_${BEAM}_fold_commands_batch_${fold_batch_number}.txt
 
-        sbatch --job-name=$fold_job_name --output=$logs/${CLUSTER}_fold_${EPOCH}_${BEAM}_batch_${fold_batch_number}.out --error=$logs/${CLUSTER}_fold_${EPOCH}_${BEAM}_batch_${fold_batch_number}.err -p ${fold_partition} --export=ALL --cpus-per-task=$batch_size --time=$fold_wall_clock --mem=$fold_ram_per_job --wrap=\"${code_directory}/FOLD_AND_COPY_BACK.sh ${singularity_image_path} ${mount_path} ${code_directory} ${tmp_working_dir} ${code_directory}/${CLUSTER}/${EPOCH}/${BEAM} ${obs_file} ${CLUSTER}_${EPOCH}_${BEAM}_fold_commands_batch.txt $batch_size\"
+        sbatch --job-name=$fold_job_name --output=$logs/${CLUSTER}_fold_${EPOCH}_${BEAM}_batch_${fold_batch_number}.out --error=$logs/${CLUSTER}_fold_${EPOCH}_${BEAM}_batch_${fold_batch_number}.err -p ${fold_partition} --export=ALL --cpus-per-task=$batch_size --time=$fold_wall_clock --mem=$fold_ram_per_job ${code_directory}/FOLD_AND_COPY_BACK.sh ${singularity_image_path} ${mount_path} ${code_directory} ${tmp_working_dir} ${code_directory}/${CLUSTER}/${EPOCH}/${BEAM} ${obs_file} ${CLUSTER}_${EPOCH}_${BEAM}_fold_commands_batch_${fold_batch_number}.txt $batch_size 
         fold_batch_number=$((fold_batch_number + 1))
       done
     elif [ "$num_lines" -eq 0 ]; then
@@ -188,12 +188,3 @@ done
 
 
 
-
-
-# #Copy Results back
-
-# rsync -Pav ${working_dir}/04_SIFTING $previous_results
-# rsync -Pav ${working_dir}/05_FOLDING $previous_results
-
-# # #Clean Up
-# #rm -rf $working_dir

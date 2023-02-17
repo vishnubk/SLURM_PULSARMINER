@@ -8,7 +8,6 @@ previous_results=$5
 raw_data=$6
 fold_script_file=$7
 ncpus=$8
-pm_config=$9
 fold_timeseries=0
 rfifind_mask=${previous_results}/01_RFIFIND
 search_results=${previous_results}/03_DEDISPERSION
@@ -32,25 +31,25 @@ fi
 echo "Copying config file"
 rsync -Pav $code_dir/$pm_config $working_dir
 echo "Copying raw data"
-rsync -Pav $raw_data $working_dir
+rsync -PavL $raw_data $working_dir
 echo "Copying rfifind mask"
 rsync -Pav $rfifind_mask $working_dir
 rsync -Pav $fold_results $working_dir
-rsync -Pav $code_dir/pm_run_multithread $working_dir
-rsync -Pav $code_dir/$fold_script_file $working_dir
 
 basename_rawdata=$(basename "$raw_data")
 raw_data=${working_dir}/${basename_rawdata}
+rawdata_basename="${basename_rawdata%.*}"
 
 
+rsync -Pav $code_dir/pm_run_multithread ${working_dir}/05_FOLDING/$rawdata_basename/
+rsync -Pav $code_dir/$fold_script_file ${working_dir}/05_FOLDING/$rawdata_basename/
 
 basename_fold_script_file=$(basename "$fold_script_file")
-fold_script_file=${working_dir}/${basename_fold_script_file}
+fold_script_file=${working_dir}/05_FOLDING/$rawdata_basename/${basename_fold_script_file}
 
 
-
-
-singularity exec -H $HOME:/home1 -B $data_dir:$data_dir $sing_image python ${working_dir}/pm_run_multithread -cmdfile $fold_script_file -ncpus $ncpus
+cd ${working_dir}/05_FOLDING/$rawdata_basename/
+singularity exec -H $HOME:/home1 -B $data_dir:$data_dir $sing_image python pm_run_multithread -cmdfile $basename_fold_script_file -ncpus $ncpus
 
 
 
