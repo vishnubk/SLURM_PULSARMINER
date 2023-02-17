@@ -412,6 +412,7 @@ def main():
             f.write('###################################### Running Dedispersion on Cluster %s, Epoch %s, Beam %s Segment %s, Chunk %s using %d CPUs   ##################################################################' %(cluster, epoch, beam, time_segment,chunk_label, dedisp_cpu_cores) + '\n')
             f.write(dedisp_script + '\n' + '\n')
             f.write('slurmids="$slurmids:$dedisp"' + '\n')
+            f.write('check_job_submission_limit' + '\n')
 
             full_length_dat_file_dir = output_dir
 
@@ -440,6 +441,7 @@ def main():
                             %(cluster, epoch, beam, time_segments[j], chunk_label, dm, cluster, epoch, beam, time_segments[j], chunk_label, dm, jerk_partition, jerk_cpus, jerk_wall_clock, jerk_ram, cwd, singularity_image, mount_path, code_directory, dat_file, jerk_search_zmax, jerk_search_wmax,jerk_search_numharm, jerk_search_cpus_per_proc, working_dir_search, output_dir, time_segments[j], chunk_label)
                         f.write(search_script + '\n' + '\n')
                         f.write('slurmids="$slurmids:$search"' + '\n')
+                        f.write('check_job_submission_limit' + '\n')
                 
                 else:
                     time_chunk = float(time_segments[j].replace('m','')) * 60
@@ -469,6 +471,7 @@ def main():
 
                             f.write(search_script + '\n' + '\n')
                             f.write('slurmids="$slurmids:$search"' + '\n')
+                            f.write('check_job_submission_limit' + '\n')
         
         # In case the number of DMs is not divisible by the number of cores, we do the remaining now by adjusting the cpus-per-task.
         if ndm_trials % dedisp_cpu_cores != 0:
@@ -495,6 +498,7 @@ def main():
             f.write('###################################### Running Dedispersion on Cluster %s, Epoch %s, Beam %s Segment %s, Chunk %s using %d CPUs   ##################################################################' %(cluster, epoch, beam, time_segment,chunk_label, dedisp_cpu_cores) + '\n')
             f.write(dedisp_script + '\n' + '\n')
             f.write('slurmids="$slurmids:$dedisp"' + '\n')
+            f.write('check_job_submission_limit' + '\n')
 
             
             for j in range(len(time_segments)):
@@ -522,6 +526,7 @@ def main():
 
                         f.write(search_script + '\n' + '\n')
                         f.write('slurmids="$slurmids:$search"' + '\n')
+                        f.write('check_job_submission_limit' + '\n')
                 
                 else:
                     
@@ -549,6 +554,7 @@ def main():
                                 %(cluster, epoch, beam, time_segments[j], chunk_label, dm, cluster, epoch, beam, time_segments[j], chunk_label, dm, jerk_partition, jerk_cpus, jerk_wall_clock, jerk_ram, cwd, singularity_image, mount_path, code_directory, dat_file, jerk_search_zmax, jerk_search_wmax,jerk_search_numharm, jerk_search_cpus_per_proc, working_dir_search, output_dir, time_segments[j], chunk_label)
                             f.write(search_script + '\n' + '\n')
                             f.write('slurmids="$slurmids:$search"' + '\n')
+                            f.write('check_job_submission_limit' + '\n')
         
         #Start the slurm sifting job. This will run after all the dedispersion and periodicity search jobs have finished
         f.write('###################################### Running Sifting on Cluster %s, Epoch %s, Beam %s using %d CPUs   ##################################################################' %(cluster, epoch, beam, sift_cpus) + '\n')
@@ -558,6 +564,7 @@ def main():
         sift_and_create_fold_script = '''sift_and_create_fold_command_file=$(sbatch --parsable --job-name=sift_and_create_fold_command_file --dependency=afterok$slurmids --output=$logs/%s_sift_and_create_fold_command_file_%s_%s.out --error=$logs/%s_sift_and_create_fold_command_file_%s_%s.err -p %s --export=ALL --cpus-per-task=%d --time=%s --mem=%s --wrap="%s/SIFT_CREATE_FOLD_SCRIPT_AND_COPY_BACK.sh %s %s %s %s %s %s %s")''' %(cluster, epoch, beam, cluster, epoch, beam, sift_partition, sift_cpus, sift_wall_clock, sift_ram, code_directory, singularity_image, mount_path, code_directory, tmp_dir_sifting_and_fold_script_creation, output_dir, full_data_path, os.path.abspath(pulsarminer_config_file))
         f.write(sift_and_create_fold_script + '\n' + '\n')
         f.write('slurmids="$slurmids:$sift_script"' + '\n')
+        f.write('check_job_submission_limit' + '\n')
                     
    
 

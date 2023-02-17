@@ -10,20 +10,39 @@ tmp_dir="/tmp"
 # set the name of the Slurm config file
 slurm_config_file="slurm_config.cfg"
 
+#!/bin/bash
+
+# default values
+obs_file=""
+pm_config_file=""
+tmp_dir="/tmp"
+
+# get the maximum number of jobs that the user can submit minus 5. This is to ensure that the user has some jobs left to submit manually
+maxjobs=$(( $(sacctmgr list associations format=user,maxsubmitjobs -n | grep $USER | awk '{print $2}') - 5 ))
+
 # parse command-line arguments
-while getopts ":ho:p:t:" opt; do
+while getopts ":hm:o:p:t:" opt; do
   case $opt in
     h)
       echo "SLURM PULSARMINER Launch Script. With Great Parallelization Comes Great Responsibility. Ensure that you fill the slurm config file with the correct values for your system."
       echo ""
-      echo "Usage: $0 [-h] [-o observation_file] [-p config_file] [-t tmp_directory]"
+      echo "Usage: $0 [-h] [-m max_slurm_jobs] [-o observation_file] [-p config_file] [-t tmp_directory]"
       echo ""
       echo "Options:"
       echo "  -h            Show this help message and exit"
+      echo "  -m NUM        Maximum number of SLURM jobs to submit at a time (default is five less than your max which is: $maxjobs)"
       echo "  -o FILE       Observation file to process"
       echo "  -p FILE       Configuration file"
       echo "  -t DIR        Temporary directory (default is /tmp)"
       exit 0
+      ;;
+    m)
+      if [ "$OPTARG" -gt "$maxjobs" ]; then
+        echo "Maximum number of SLURM jobs to submit ($OPTARG) is greater than the maximum allowed for the user ($maxjobs). Setting maximum number of jobs to $maxjobs."
+        slurm_user_requested_jobs="$maxjobs"
+      else
+        slurm_user_requested_jobs="$OPTARG"
+      fi
       ;;
     o)
       obs_file="$OPTARG"
@@ -51,10 +70,11 @@ done
 if [ $# -eq 0 ]; then
   echo "SLURM PULSARMINER Launch Script. With Great Parallelization Comes Great Responsibility. Ensure that you fill the slurm config file with the correct values for your system."
   echo ""
-  echo "Usage: $0 [-h] [-o observation_file] [-p config_file] [-t tmp_directory]"
+  echo "Usage: $0 [-h] [-m max_slurm_jobs] [-o observation_file] [-p config_file] [-t tmp_directory]"
   echo ""
   echo "Options:"
   echo "  -h            Show this help message and exit"
+  echo "  -m NUM        Maximum number of SLURM jobs to submit at a time (default is five less than your max which is: $maxjobs)"
   echo "  -o FILE       Observation file to process"
   echo "  -p FILE       Configuration file"
   echo "  -t DIR        Temporary directory (default is /tmp)"
@@ -75,11 +95,13 @@ if [ -z "$pm_config_file" ]; then
   exit 1
 fi
 
+
 # rest of the script goes here...
 echo "Observation file is: $obs_file"
 echo "PULSARMINER Configuration file is: $pm_config_file"
 echo "Slurm Configuration file is: $slurm_config_file"
 echo "Temporary directory is: $tmp_dir"
+echo "Max. Slurm jobs we will submit at a time is: $slurm_user_requested_jobs"
 
 #Parse the slurm config file
 get_config_value() {
@@ -144,47 +166,64 @@ BEAM="${obs_parts[2]}"
 tmp_working_dir="${tmp_dir}/${CLUSTER}/${EPOCH}/${BEAM}"
 mkdir -p $tmp_working_dir
 
+
+
+
+# Define a function that checks the condition and sleeps until it is met
+check_job_submission_limit () {
+    while true; do
+        numjobs=$(squeue -u $USER -h | wc -l) # Get number of submitted jobs by user
+        if [ "$numjobs" -lt "$slurm_user_requested_jobs" ]; then # Check if condition is met
+            break # Exit loop
+        else
+            echo "Number of jobs submitted is $numjobs. Waiting for them to finish before submitting more jobs."
+            sleep 100 # Sleep for 100 seconds
+        fi
+    done
+}
+
+
 singularity exec -H $HOME:/home1 -B $mount_path:$mount_path $singularity_image_path python ${code_directory}/create_slurm_jobs.py -s ${code_directory}/$slurm_config_file -p ${code_directory}/$pm_config_file -o $obs_file 
 
 source ${code_directory}/slurm_jobs_${CLUSTER}_${EPOCH}_${BEAM}.sh
 
 
-fold_script_filename=${CLUSTER}/${EPOCH}/${BEAM}/05_FOLDING/${CLUSTER}_${EPOCH}_${BEAM}/script_fold.txt
-fold_batch_number=1
-while true; do
-  if [ -f $fold_script_filename ]; then
-    # Get the number of lines in the file
-    num_lines=$(wc -l < $fold_script_filename)
+ fold_script_filename=${CLUSTER}/${EPOCH}/${BEAM}/05_FOLDING/${CLUSTER}_${EPOCH}_${BEAM}/script_fold.txt
+ fold_batch_number=1
+ while true; do
+   if [ -f $fold_script_filename ]; then
+     # Get the number of lines in the file
+     num_lines=$(wc -l < $fold_script_filename)
 
-    if [ "$num_lines" -gt 0 ]; then
-      # Divide the lines into batches of $fold_cpus_per_task or less
-      for i in $(seq 0 $((fold_cpus_per_task - 1)) $((num_lines - 1))); do
-        # Calculate the number of lines in this batch
-        batch_size=$((num_lines - i))
-        if [ "$batch_size" -gt "$fold_cpus_per_task" ]; then
-          batch_size=$fold_cpus_per_task
-        fi
+     if [ "$num_lines" -gt 0 ]; then
+       # Divide the lines into batches of $fold_cpus_per_task or less
+       for i in $(seq 0 $((fold_cpus_per_task - 1)) $((num_lines - 1))); do
+         # Calculate the number of lines in this batch
+         batch_size=$((num_lines - i))
+         if [ "$batch_size" -gt "$fold_cpus_per_task" ]; then
+           batch_size=$fold_cpus_per_task
+         fi
 
-        # Get the lines for this batch and write them to a temporary file
-        start=$((i + 1))
-        end=$((i + batch_size))
-        sed -n "${start},${end}p" $fold_script_filename > ${CLUSTER}_${EPOCH}_${BEAM}_fold_commands_batch_${fold_batch_number}.txt
+         # Get the lines for this batch and write them to a temporary file
+         start=$((i + 1))
+         end=$((i + batch_size))
+         sed -n "${start},${end}p" $fold_script_filename > ${CLUSTER}_${EPOCH}_${BEAM}_fold_commands_batch_${fold_batch_number}.txt
 
-        sbatch --job-name=$fold_job_name --output=$logs/${CLUSTER}_fold_${EPOCH}_${BEAM}_batch_${fold_batch_number}.out --error=$logs/${CLUSTER}_fold_${EPOCH}_${BEAM}_batch_${fold_batch_number}.err -p ${fold_partition} --export=ALL --cpus-per-task=$batch_size --time=$fold_wall_clock --mem=$fold_ram_per_job ${code_directory}/FOLD_AND_COPY_BACK.sh ${singularity_image_path} ${mount_path} ${code_directory} ${tmp_working_dir} ${code_directory}/${CLUSTER}/${EPOCH}/${BEAM} ${obs_file} ${CLUSTER}_${EPOCH}_${BEAM}_fold_commands_batch_${fold_batch_number}.txt $batch_size 
-        fold_batch_number=$((fold_batch_number + 1))
-      done
-    elif [ "$num_lines" -eq 0 ]; then
-      echo "No candidates found to fold. Exiting."
-    fi
+         sbatch --job-name=$fold_job_name --output=$logs/${CLUSTER}_fold_${EPOCH}_${BEAM}_batch_${fold_batch_number}.out --error=$logs/${CLUSTER}_fold_${EPOCH}_${BEAM}_batch_${fold_batch_number}.err -p ${fold_partition} --export=ALL --cpus-per-task=$batch_size --time=$fold_wall_clock --mem=$fold_ram_per_job ${code_directory}/FOLD_AND_COPY_BACK.sh ${singularity_image_path} ${mount_path} ${code_directory} ${tmp_working_dir} ${code_directory}/${CLUSTER}/${EPOCH}/${BEAM} ${obs_file} ${CLUSTER}_${EPOCH}_${BEAM}_fold_commands_batch_${fold_batch_number}.txt $batch_size 
+         fold_batch_number=$((fold_batch_number + 1))
+       done
+     elif [ "$num_lines" -eq 0 ]; then
+       echo "No candidates found to fold. Exiting."
+     fi
 
-    # Exit the loop once we've processed the file
-    break
-  fi
+     # Exit the loop once we've processed the file
+     break
+   fi
 
-  # Wait 10 minutes before checking again
-  echo "Waiting for folding script to be created. Going to sleep for 10 minutes."
-  sleep 600
-done
+   # Wait 10 minutes before checking again
+   echo "Waiting for folding script to be created. Going to sleep for 10 minutes."
+   sleep 600
+ done
 
 
 
