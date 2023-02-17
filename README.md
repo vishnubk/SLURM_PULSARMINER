@@ -22,10 +22,11 @@ Help Function for LAUNCH_SLURM_PULSARMINER.sh
 
 **SLURM PULSARMINER Launch Script. With Great Parallelization Comes Great Responsibility. Ensure that you fill the slurm config file with the correct values for your system.**
 
-Usage: ./LAUNCH_SLURM_PULSARMINER.sh [-h] [-o observation_file] [-p config_file] [-t tmp_directory]
+Usage: ./LAUNCH_SLURM_PULSARMINER.sh [-h] [-m max_slurm_jobs] [-o observation_file] [-p config_file] [-t tmp_directory]
 
 Options:
   -h            Show this help message and exit
+  -m NUM        Maximum number of SLURM jobs to submit at a time (default is five less than your max which is: 19995)
   -o FILE       Observation file to process
   -p FILE       Configuration file
   -t DIR        Temporary directory (default is /tmp)
