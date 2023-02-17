@@ -19,7 +19,7 @@ tmp_dir="/tmp"
 
 # get the maximum number of jobs that the user can submit minus 5. This is to ensure that the user has some jobs left to submit manually
 maxjobs=$(( $(sacctmgr list associations format=user,maxsubmitjobs -n | grep $USER | awk '{print $2}') - 5 ))
-
+slurm_user_requested_jobs=$maxjobs
 # parse command-line arguments
 while getopts ":hm:o:p:t:" opt; do
   case $opt in
@@ -37,6 +37,7 @@ while getopts ":hm:o:p:t:" opt; do
       exit 0
       ;;
     m)
+      # Override the default value of $slurm_user_requested_jobs if the user provides a valid argument
       if [ "$OPTARG" -gt "$maxjobs" ]; then
         echo "Maximum number of SLURM jobs to submit ($OPTARG) is greater than the maximum allowed for the user ($maxjobs). Setting maximum number of jobs to $maxjobs."
         slurm_user_requested_jobs="$maxjobs"
@@ -173,7 +174,7 @@ mkdir -p $tmp_working_dir
 check_job_submission_limit () {
     while true; do
         numjobs=$(squeue -u $USER -h | wc -l) # Get number of submitted jobs by user
-        if [ "$numjobs" -lt "$slurm_user_requested_jobs" ]; then # Check if condition is met
+        if [ "$((numjobs))" -lt "$((slurm_user_requested_jobs))" ]; then # Check if condition is met
             break # Exit loop
         else
             echo "Number of jobs submitted is $numjobs. Waiting for them to finish before submitting more jobs."
