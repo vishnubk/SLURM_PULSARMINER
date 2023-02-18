@@ -227,6 +227,6 @@ source ${code_directory}/slurm_jobs_${CLUSTER}_${EPOCH}_${BEAM}.sh
  done
 
 #delete dat files after folding
-"rm -rf ${code_directory}/${CLUSTER}/${EPOCH}/${BEAM}/03_DEDISPERSION/${CLUSTER}_${EPOCH}_${BEAM}/full/ck00/*.dat"
+rm -rf ${code_directory}/${CLUSTER}/${EPOCH}/${BEAM}/03_DEDISPERSION/${CLUSTER}_${EPOCH}_${BEAM}/full/ck00/*.dat
 
 
