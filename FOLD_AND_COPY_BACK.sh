@@ -8,6 +8,7 @@ previous_results=$5
 raw_data=$6
 fold_script_file=$7
 ncpus=$8
+pm_config=$9
 fold_timeseries=0
 rfifind_mask=${previous_results}/01_RFIFIND
 search_results=${previous_results}/03_DEDISPERSION
@@ -25,10 +26,9 @@ else
   rsync -Pav --exclude='*.dat' $search_results $working_dir  
    
 fi
-
 ## Copy the raw data, rfifind mask, search and sifting results to the working directory
 echo "Copying config file"
-rsync -Pav $code_dir/$pm_config $working_dir
+rsync -Pav ${code_dir}/${pm_config} $working_dir
 echo "Copying raw data"
 rsync -PavL $raw_data $working_dir
 echo "Copying rfifind mask"
@@ -56,5 +56,5 @@ singularity exec -H $HOME:/home1 -B $data_dir:$data_dir $sing_image python pm_ru
 
 rsync -Pav ${working_dir}/05_FOLDING $previous_results
 
-# #Clean Up
+#Clean Up
 rm -rf $working_dir
