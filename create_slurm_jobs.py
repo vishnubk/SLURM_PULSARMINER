@@ -366,11 +366,14 @@ def main():
     jerk_partition = config_slurm['Jerk_Search']['JOB_PARTITION']
     sift_partition = config_slurm['Sifting']['JOB_PARTITION']
 
-
+    list_accel_search_zmax = pm_config.accelsearch_list_zmax
+    gpu_accel_search_flag = int(pm_config.flag_use_cuda)
+    accel_search_numharm = pm_config.accelsearch_numharm
     jerk_search_zmax = int(pm_config.jerksearch_zmax)
     jerk_search_wmax = int(pm_config.jerksearch_wmax)
     jerk_search_numharm = int(pm_config.jerksearch_numharm)
-    jerk_search_cpus_per_proc = int(pm_config.jerksearch_ncpus)
+    #jerk_search_cpus_per_proc = int(pm_config.jerksearch_ncpus)
+    dir_accel_search = os.path.join(pm_config.root_workdir, cluster, epoch, beam, "03_ACCEL_SEARCH")
     dir_jerk_search = os.path.join(pm_config.root_workdir, cluster, epoch, beam, "03_JERK_SEARCH")
 
     singularity_image = config_slurm['Singularity_Image']['Singularity_Image_Path']
@@ -432,16 +435,32 @@ def main():
                     for dm in dm_loop_trials:
                         #dat_file = os.path.join(output_dir, '%s_%s_%s_%s_%s_DM%.2f.dat' %(cluster, epoch, beam, time_segments[j], chunk_label, dm))
                         dat_file = os.path.join(full_length_dat_file_dir, '%s_%s_%s_full_ck00_DM%.2f.dat' %(cluster, epoch, beam, dm))
-                        working_dir_search = os.path.join(dir_jerk_search, observation_name_no_extension, time_segments[j], chunk_label, 'DM%.2f' %dm)
+                        working_dir_search_jerk_search = os.path.join(dir_jerk_search, observation_name_no_extension, time_segments[j], chunk_label, 'DM%.2f' %dm)
+
                         f.write('###################################### Running Periodicity Search on Observation: %s, segment: %s chunk: %s    ##################################################################' %(os.path.basename(dat_file), time_segments[j],chunk_label) + '\n')
+                        # Create a slurm job for accel search
+                        for zmax in list_accel_search_zmax:
+                            wmax = 0
+                            working_dir_search_accel_search = os.path.join(dir_accel_search, observation_name_no_extension, time_segments[j], chunk_label, 'DM%.2f' %dm, 'ZMAX_%d' %int(zmax))
+
+                            if accel_partition == 'gpu.q':
+                                search_script = '''search=$(sbatch --parsable --job-name=accel_search --dependency=afterok:$dedisp --output=$logs/%s_accel_search_%s_%s_%s_%s_DM%.2f_zmax_%d.out --error=$logs/%s_accel_search_%s_%s_%s_%s_DM%.2f_zmax_%d.err -p gpu.q --gres=gpu:1 --export=ALL --cpus-per-task=%d --time=%s --mem=%s --wrap="%s/PERIODICITY_SEARCH_AND_COPY_BACK.sh %s %s %s %s %d %d %d %d %s %s %s %s %d")''' \
+                                %(cluster, epoch, beam, time_segments[j], chunk_label, dm, zmax, cluster, epoch, beam, time_segments[j], chunk_label, dm, zmax, accel_cpus, accel_wall_clock, accel_ram, cwd, singularity_image, mount_path, code_directory, dat_file, zmax, wmax, accel_search_numharm, accel_cpus, working_dir_search_accel_search, output_dir, time_segments[j], chunk_label, gpu_accel_search_flag)
+                            else:
+                                search_script = '''search=$(sbatch --parsable --job-name=accel_search --dependency=afterok:$dedisp --output=$logs/%s_accel_search_%s_%s_%s_%s_DM%.2f_zmax_%d.out --error=$logs/%s_accel_search_%s_%s_%s_%s_DM%.2f_zmax_%d.err -p %s --export=ALL --cpus-per-task=%d --time=%s --mem=%s --wrap="%s/PERIODICITY_SEARCH_AND_COPY_BACK.sh %s %s %s %s %d %d %d %d %s %s %s %s %d")''' \
+                                %(cluster, epoch, beam, time_segments[j], chunk_label, dm, zmax, cluster, epoch, beam, time_segments[j], chunk_label, dm, zmax, accel_partition, accel_cpus, accel_wall_clock, accel_ram, cwd, singularity_image, mount_path, code_directory, dat_file, zmax, wmax, accel_search_numharm, accel_cpus, working_dir_search_accel_search, output_dir, time_segments[j], chunk_label, gpu_accel_search_flag)
+                            f.write(search_script + '\n' + '\n')
+                            f.write('slurmids="$slurmids:$search"' + '\n')
+                            f.write('check_job_submission_limit' + '\n')
 
                         # Create a slurm job file for jerk search
                         if jerk_partition == 'gpu.q':
-                            search_script = '''search=$(sbatch --parsable --job-name=jerk_search --dependency=afterok:$dedisp --output=$logs/%s_jerk_search_%s_%s_%s_%s_DM%.2f.out --error=$logs/%s_jerk_search_%s_%s_%s_%s_DM%.2f.err -p gpu.q --gres=gpu:1 --export=ALL --cpus-per-task=%d --time=%s --mem=%s --wrap="%s/PERIODICITY_SEARCH_AND_COPY_BACK.sh %s %s %s %s %d %d %d %d %s %s %s %s")''' \
-                            %(cluster, epoch, beam, time_segments[j], chunk_label, dm, cluster, epoch, beam, time_segments[j], chunk_label, dm, jerk_cpus, jerk_wall_clock, jerk_ram, cwd, singularity_image, mount_path, code_directory, dat_file, jerk_search_zmax, jerk_search_wmax,jerk_search_numharm, jerk_search_cpus_per_proc, working_dir_search, output_dir, time_segments[j], chunk_label)
+                            search_script = '''search=$(sbatch --parsable --job-name=jerk_search --dependency=afterok:$dedisp --output=$logs/%s_jerk_search_%s_%s_%s_%s_DM%.2f.out --error=$logs/%s_jerk_search_%s_%s_%s_%s_DM%.2f.err -p gpu.q --gres=gpu:1 --export=ALL --cpus-per-task=%d --time=%s --mem=%s --wrap="%s/PERIODICITY_SEARCH_AND_COPY_BACK.sh %s %s %s %s %d %d %d %d %s %s %s %s %d")''' \
+                            %(cluster, epoch, beam, time_segments[j], chunk_label, dm, cluster, epoch, beam, time_segments[j], chunk_label, dm, jerk_cpus, jerk_wall_clock, jerk_ram, cwd, singularity_image, mount_path, code_directory, dat_file, jerk_search_zmax, jerk_search_wmax,jerk_search_numharm, jerk_cpus, working_dir_search_jerk_search, output_dir, time_segments[j], chunk_label, gpu_accel_search_flag)
                         else:
-                            search_script = '''search=$(sbatch --parsable --job-name=jerk_search --dependency=afterok:$dedisp --output=$logs/%s_jerk_search_%s_%s_%s_%s_DM%.2f.out --error=$logs/%s_jerk_search_%s_%s_%s_%s_DM%.2f.err -p %s --export=ALL --cpus-per-task=%d --time=%s --mem=%s --wrap="%s/PERIODICITY_SEARCH_AND_COPY_BACK.sh %s %s %s %s %d %d %d %d %s %s %s %s")''' \
-                            %(cluster, epoch, beam, time_segments[j], chunk_label, dm, cluster, epoch, beam, time_segments[j], chunk_label, dm, jerk_partition, jerk_cpus, jerk_wall_clock, jerk_ram, cwd, singularity_image, mount_path, code_directory, dat_file, jerk_search_zmax, jerk_search_wmax,jerk_search_numharm, jerk_search_cpus_per_proc, working_dir_search, output_dir, time_segments[j], chunk_label)
+                            search_script = '''search=$(sbatch --parsable --job-name=jerk_search --dependency=afterok:$dedisp --output=$logs/%s_jerk_search_%s_%s_%s_%s_DM%.2f.out --error=$logs/%s_jerk_search_%s_%s_%s_%s_DM%.2f.err -p %s --export=ALL --cpus-per-task=%d --time=%s --mem=%s --wrap="%s/PERIODICITY_SEARCH_AND_COPY_BACK.sh %s %s %s %s %d %d %d %d %s %s %s %s %d")''' \
+                            %(cluster, epoch, beam, time_segments[j], chunk_label, dm, cluster, epoch, beam, time_segments[j], chunk_label, dm, jerk_partition, jerk_cpus, jerk_wall_clock, jerk_ram, cwd, singularity_image, mount_path, code_directory, dat_file, jerk_search_zmax, jerk_search_wmax,jerk_search_numharm, jerk_cpus, working_dir_search_jerk_search, output_dir, time_segments[j], chunk_label, gpu_accel_search_flag)
+
                         f.write(search_script + '\n' + '\n')
                         f.write('slurmids="$slurmids:$search"' + '\n')
                         f.write('check_job_submission_limit' + '\n')
@@ -460,17 +479,34 @@ def main():
                         for dm in dm_loop_trials:
                             
                             dat_file = os.path.join(full_length_dat_file_dir, '%s_%s_%s_full_ck00_DM%.2f.dat' %(cluster, epoch, beam, dm))
-                            working_dir_search = os.path.join(dir_jerk_search, observation_name_no_extension, time_segments[j], chunk_label, 'DM%.2f' %(dm))
+                            #working_dir_search_accel_search = os.path.join(dir_accel_search, observation_name_no_extension, time_segments[j], chunk_label, 'DM%.2f' %dm)
+                            working_dir_search_jerk_search = os.path.join(dir_jerk_search, observation_name_no_extension, time_segments[j], chunk_label, 'DM%.2f' %dm)
 
-                            # Create a slurm job file for jerk search
+                            #working_dir_search = os.path.join(dir_jerk_search, observation_name_no_extension, time_segments[j], chunk_label, 'DM%.2f' %(dm))
                             f.write('###################################### Splitting timeseries and Running Periodicity Search on Observation: %s, segment: %sm chunk: %s    ##################################################################' %(os.path.basename(dat_file), time_segments[j],chunk_label) + '\n')
+                            # Create a slurm job for accel search
+                            for zmax in list_accel_search_zmax:
+                                wmax = 0
+                                working_dir_search_accel_search = os.path.join(dir_accel_search, observation_name_no_extension, time_segments[j], chunk_label, 'DM%.2f' %dm, 'ZMAX_%d' %int(zmax))
+
+                                if accel_partition == 'gpu.q':
+                                    search_script = '''search=$(sbatch --parsable --job-name=accel_search --dependency=afterok:$dedisp --output=$logs/%s_accel_search_%s_%s_%s_%s_DM%.2f_zmax_%d.out --error=$logs/%s_accel_search_%s_%s_%s_%s_DM%.2f_zmax_%d.err -p gpu.q --gres=gpu:1 --export=ALL --cpus-per-task=%d --time=%s --mem=%s --wrap="%s/PERIODICITY_SEARCH_AND_COPY_BACK.sh %s %s %s %s %d %d %d %d %s %s %s %s %d")''' \
+                                    %(cluster, epoch, beam, time_segments[j], chunk_label, dm, zmax, cluster, epoch, beam, time_segments[j], chunk_label, dm, zmax, accel_cpus, accel_wall_clock, accel_ram, cwd, singularity_image, mount_path, code_directory, dat_file, zmax, wmax, accel_search_numharm, accel_cpus, working_dir_search_accel_search, output_dir, time_segments[j], chunk_label, gpu_accel_search_flag)
+                                else:
+                                    search_script = '''search=$(sbatch --parsable --job-name=accel_search --dependency=afterok:$dedisp --output=$logs/%s_accel_search_%s_%s_%s_%s_DM%.2f_zmax_%d.out --error=$logs/%s_accel_search_%s_%s_%s_%s_DM%.2f_zmax_%d.err -p %s --export=ALL --cpus-per-task=%d --time=%s --mem=%s --wrap="%s/PERIODICITY_SEARCH_AND_COPY_BACK.sh %s %s %s %s %d %d %d %d %s %s %s %s %d")''' \
+                                    %(cluster, epoch, beam, time_segments[j], chunk_label, dm, zmax, cluster, epoch, beam, time_segments[j], chunk_label, dm, zmax, accel_partition, accel_cpus, accel_wall_clock, accel_ram, cwd, singularity_image, mount_path, code_directory, dat_file, zmax, wmax, accel_search_numharm, accel_cpus, working_dir_search_accel_search, output_dir, time_segments[j], chunk_label, gpu_accel_search_flag)
+                                f.write(search_script + '\n' + '\n')
+                                f.write('slurmids="$slurmids:$search"' + '\n')
+                                f.write('check_job_submission_limit' + '\n')
+
+                            # Create a slurm job for jerk search
                             if jerk_partition == 'gpu.q':
                                   
-                                search_script = '''search=$(sbatch --parsable --job-name=jerk_search --dependency=afterok:$dedisp --output=$logs/%s_jerk_search_%s_%s_%s_%s_DM%.2f.out --error=$logs/%s_jerk_search_%s_%s_%s_%s_DM%.2f.err -p gpu.q --gres=gpu:1 --export=ALL --cpus-per-task=%d --time=%s --mem=%s --wrap="%s/PERIODICITY_SEARCH_AND_COPY_BACK.sh %s %s %s %s %d %d %d %d %s %s %s %s")''' \
-                                %(cluster, epoch, beam, time_segments[j], chunk_label, dm, cluster, epoch, beam, time_segments[j], chunk_label, dm, jerk_cpus, jerk_wall_clock, jerk_ram, cwd, singularity_image, mount_path, code_directory, dat_file, jerk_search_zmax, jerk_search_wmax,jerk_search_numharm, jerk_search_cpus_per_proc, working_dir_search, output_dir, time_segments[j], chunk_label)
+                                search_script = '''search=$(sbatch --parsable --job-name=jerk_search --dependency=afterok:$dedisp --output=$logs/%s_jerk_search_%s_%s_%s_%s_DM%.2f.out --error=$logs/%s_jerk_search_%s_%s_%s_%s_DM%.2f.err -p gpu.q --gres=gpu:1 --export=ALL --cpus-per-task=%d --time=%s --mem=%s --wrap="%s/PERIODICITY_SEARCH_AND_COPY_BACK.sh %s %s %s %s %d %d %d %d %s %s %s %s %d")''' \
+                                %(cluster, epoch, beam, time_segments[j], chunk_label, dm, cluster, epoch, beam, time_segments[j], chunk_label, dm, jerk_cpus, jerk_wall_clock, jerk_ram, cwd, singularity_image, mount_path, code_directory, dat_file, jerk_search_zmax, jerk_search_wmax,jerk_search_numharm, jerk_cpus, working_dir_search_jerk_search, output_dir, time_segments[j], chunk_label, gpu_accel_search_flag)
                             else:
-                                search_script = '''search=$(sbatch --parsable --job-name=jerk_search --dependency=afterok:$dedisp --output=$logs/%s_jerk_search_%s_%s_%s_%s_DM%.2f.out --error=$logs/%s_jerk_search_%s_%s_%s_%s_DM%.2f.err -p %s --export=ALL --cpus-per-task=%d --time=%s --mem=%s --wrap="%s/PERIODICITY_SEARCH_AND_COPY_BACK.sh %s %s %s %s %d %d %d %d %s %s %s %s")''' \
-                                %(cluster, epoch, beam, time_segments[j], chunk_label, dm, cluster, epoch, beam, time_segments[j], chunk_label, dm, jerk_partition, jerk_cpus, jerk_wall_clock, jerk_ram, cwd, singularity_image, mount_path, code_directory, dat_file, jerk_search_zmax, jerk_search_wmax,jerk_search_numharm, jerk_search_cpus_per_proc, working_dir_search, output_dir, time_segments[j], chunk_label)
+                                search_script = '''search=$(sbatch --parsable --job-name=jerk_search --dependency=afterok:$dedisp --output=$logs/%s_jerk_search_%s_%s_%s_%s_DM%.2f.out --error=$logs/%s_jerk_search_%s_%s_%s_%s_DM%.2f.err -p %s --export=ALL --cpus-per-task=%d --time=%s --mem=%s --wrap="%s/PERIODICITY_SEARCH_AND_COPY_BACK.sh %s %s %s %s %d %d %d %d %s %s %s %s %d")''' \
+                                %(cluster, epoch, beam, time_segments[j], chunk_label, dm, cluster, epoch, beam, time_segments[j], chunk_label, dm, jerk_partition, jerk_cpus, jerk_wall_clock, jerk_ram, cwd, singularity_image, mount_path, code_directory, dat_file, jerk_search_zmax, jerk_search_wmax,jerk_search_numharm, jerk_cpus, working_dir_search_jerk_search, output_dir, time_segments[j], chunk_label, gpu_accel_search_flag)
 
                             f.write(search_script + '\n' + '\n')
                             f.write('slurmids="$slurmids:$search"' + '\n')
@@ -515,17 +551,36 @@ def main():
                     for dm in dm_loop_trials:
                         dat_file = os.path.join(full_length_dat_file_dir, '%s_%s_%s_full_ck00_DM%.2f.dat' %(cluster, epoch, beam, dm))
                         #dat_file = os.path.join(output_dir, '%s_%s_%s_%s_%s_DM%.2f.dat' %(cluster, epoch, beam, time_segments[j], chunk_label, dm))
-                        working_dir_search = os.path.join(dir_jerk_search, observation_name_no_extension, time_segments[j], chunk_label, 'DM%.2f' %dm)
-                        f.write('###################################### Running Periodicity Search on Observation: %s, segment: %s chunk: %s    ##################################################################' %(os.path.basename(dat_file), time_segments[j],chunk_label) + '\n')
+                        #working_dir_search = os.path.join(dir_jerk_search, observation_name_no_extension, time_segments[j], chunk_label, 'DM%.2f' %dm)
+                        #working_dir_search_accel_search = os.path.join(dir_accel_search, observation_name_no_extension, time_segments[j], chunk_label, 'DM%.2f' %dm)
+                        working_dir_search_jerk_search = os.path.join(dir_jerk_search, observation_name_no_extension, time_segments[j], chunk_label, 'DM%.2f' %dm)
 
-                        # Create a slurm job file for jerk search
+                        f.write('###################################### Running Periodicity Search on Observation: %s, segment: %s chunk: %s    ##################################################################' %(os.path.basename(dat_file), time_segments[j],chunk_label) + '\n')
+                        
+                        # Create a slurm job for accel search
+                        for zmax in list_accel_search_zmax:
+                            wmax = 0
+                            working_dir_search_accel_search = os.path.join(dir_accel_search, observation_name_no_extension, time_segments[j], chunk_label, 'DM%.2f' %dm, 'ZMAX_%d' %int(zmax))
+
+                            if accel_partition == 'gpu.q':
+                                search_script = '''search=$(sbatch --parsable --job-name=accel_search --dependency=afterok:$dedisp --output=$logs/%s_accel_search_%s_%s_%s_%s_DM%.2f_zmax_%d.out --error=$logs/%s_accel_search_%s_%s_%s_%s_DM%.2f_zmax_%d.err -p gpu.q --gres=gpu:1 --export=ALL --cpus-per-task=%d --time=%s --mem=%s --wrap="%s/PERIODICITY_SEARCH_AND_COPY_BACK.sh %s %s %s %s %d %d %d %d %s %s %s %s %d")''' \
+                                %(cluster, epoch, beam, time_segments[j], chunk_label, dm, zmax, cluster, epoch, beam, time_segments[j], chunk_label, dm, zmax, accel_cpus, accel_wall_clock, accel_ram, cwd, singularity_image, mount_path, code_directory, dat_file, zmax, wmax, accel_search_numharm, accel_cpus, working_dir_search_accel_search, output_dir, time_segments[j], chunk_label, gpu_accel_search_flag)
+                            else:
+                                search_script = '''search=$(sbatch --parsable --job-name=accel_search --dependency=afterok:$dedisp --output=$logs/%s_accel_search_%s_%s_%s_%s_DM%.2f_zmax_%d.out --error=$logs/%s_accel_search_%s_%s_%s_%s_DM%.2f_zmax_%d.err -p %s --export=ALL --cpus-per-task=%d --time=%s --mem=%s --wrap="%s/PERIODICITY_SEARCH_AND_COPY_BACK.sh %s %s %s %s %d %d %d %d %s %s %s %s %d")''' \
+                                %(cluster, epoch, beam, time_segments[j], chunk_label, dm, zmax, cluster, epoch, beam, time_segments[j], chunk_label, dm, zmax, accel_partition, accel_cpus, accel_wall_clock, accel_ram, cwd, singularity_image, mount_path, code_directory, dat_file, zmax, wmax, accel_search_numharm, accel_cpus, working_dir_search_accel_search, output_dir, time_segments[j], chunk_label, gpu_accel_search_flag)
+                            f.write(search_script + '\n' + '\n')
+                            f.write('slurmids="$slurmids:$search"' + '\n')
+                            f.write('check_job_submission_limit' + '\n')
+
+
+                        # Create a slurm job for jerk search
                         if jerk_partition == 'gpu.q':
                               
-                            search_script = '''search=$(sbatch --parsable --job-name=jerk_search --dependency=afterok:$dedisp --output=$logs/%s_jerk_search_%s_%s_%s_%s_DM%.2f.out --error=$logs/%s_jerk_search_%s_%s_%s_%s_DM%.2f.err -p gpu.q --gres=gpu:1 --export=ALL --cpus-per-task=%d --time=%s --mem=%s --wrap="%s/PERIODICITY_SEARCH_AND_COPY_BACK.sh %s %s %s %s %d %d %d %d %s %s %s %s")''' \
-                            %(cluster, epoch, beam, time_segments[j], chunk_label, dm, cluster, epoch, beam, time_segments[j], chunk_label, dm, jerk_cpus, jerk_wall_clock, jerk_ram, cwd, singularity_image, mount_path, code_directory, dat_file, jerk_search_zmax, jerk_search_wmax,jerk_search_numharm, jerk_search_cpus_per_proc, working_dir_search, output_dir, time_segments[j], chunk_label)
+                            search_script = '''search=$(sbatch --parsable --job-name=jerk_search --dependency=afterok:$dedisp --output=$logs/%s_jerk_search_%s_%s_%s_%s_DM%.2f.out --error=$logs/%s_jerk_search_%s_%s_%s_%s_DM%.2f.err -p gpu.q --gres=gpu:1 --export=ALL --cpus-per-task=%d --time=%s --mem=%s --wrap="%s/PERIODICITY_SEARCH_AND_COPY_BACK.sh %s %s %s %s %d %d %d %d %s %s %s %s %d")''' \
+                            %(cluster, epoch, beam, time_segments[j], chunk_label, dm, cluster, epoch, beam, time_segments[j], chunk_label, dm, jerk_cpus, jerk_wall_clock, jerk_ram, cwd, singularity_image, mount_path, code_directory, dat_file, jerk_search_zmax, jerk_search_wmax,jerk_search_numharm, jerk_cpus, working_dir_search_jerk_search, output_dir, time_segments[j], chunk_label, gpu_accel_search_flag)
                         else:
-                            search_script = '''search=$(sbatch --parsable --job-name=jerk_search --dependency=afterok:$dedisp --output=$logs/%s_jerk_search_%s_%s_%s_%s_DM%.2f.out --error=$logs/%s_jerk_search_%s_%s_%s_%s_DM%.2f.err -p %s --export=ALL --cpus-per-task=%d --time=%s --mem=%s --wrap="%s/PERIODICITY_SEARCH_AND_COPY_BACK.sh %s %s %s %s %d %d %d %d %s %s %s %s")''' \
-                            %(cluster, epoch, beam, time_segments[j], chunk_label, dm, cluster, epoch, beam, time_segments[j], chunk_label, dm, jerk_partition, jerk_cpus, jerk_wall_clock, jerk_ram, cwd, singularity_image, mount_path, code_directory, dat_file, jerk_search_zmax, jerk_search_wmax,jerk_search_numharm, jerk_search_cpus_per_proc, working_dir_search, output_dir, time_segments[j], chunk_label)
+                            search_script = '''search=$(sbatch --parsable --job-name=jerk_search --dependency=afterok:$dedisp --output=$logs/%s_jerk_search_%s_%s_%s_%s_DM%.2f.out --error=$logs/%s_jerk_search_%s_%s_%s_%s_DM%.2f.err -p %s --export=ALL --cpus-per-task=%d --time=%s --mem=%s --wrap="%s/PERIODICITY_SEARCH_AND_COPY_BACK.sh %s %s %s %s %d %d %d %d %s %s %s %s %d")''' \
+                            %(cluster, epoch, beam, time_segments[j], chunk_label, dm, cluster, epoch, beam, time_segments[j], chunk_label, dm, jerk_partition, jerk_cpus, jerk_wall_clock, jerk_ram, cwd, singularity_image, mount_path, code_directory, dat_file, jerk_search_zmax, jerk_search_wmax,jerk_search_numharm, jerk_cpus, working_dir_search_jerk_search, output_dir, time_segments[j], chunk_label, gpu_accel_search_flag)
 
                         f.write(search_script + '\n' + '\n')
                         f.write('slurmids="$slurmids:$search"' + '\n')
@@ -545,16 +600,33 @@ def main():
                         for dm in dm_loop_trials:
                             dat_file = os.path.join(full_length_dat_file_dir, '%s_%s_%s_full_ck00_DM%.2f.dat' %(cluster, epoch, beam, dm))
                             #dat_file = os.path.join(output_dir, '%s_%s_%s_%s_%s_DM%.2f.dat' %(cluster, epoch, beam, time_segments[j], chunk_label, dm))
-                            working_dir_search = os.path.join(dir_jerk_search, observation_name_no_extension, time_segments[j], chunk_label, 'DM%.2f' %(dm))
+                            #working_dir_search = os.path.join(dir_jerk_search, observation_name_no_extension, time_segments[j], chunk_label, 'DM%.2f' %(dm))
+                            #working_dir_search_accel_search = os.path.join(dir_accel_search, observation_name_no_extension, time_segments[j], chunk_label, 'DM%.2f' %dm)
+                            working_dir_search_jerk_search = os.path.join(dir_jerk_search, observation_name_no_extension, time_segments[j], chunk_label, 'DM%.2f' %dm)
 
                             # Create a slurm job file for jerk search
                             f.write('###################################### Splitting timeseries and Running Periodicity Search on Observation: %s, segment: %sm chunk: %s    ##################################################################' %(os.path.basename(dat_file), time_segments[j],chunk_label) + '\n')
+                             # Create a slurm job for accel search
+                            for zmax in list_accel_search_zmax:
+                                wmax = 0
+                                working_dir_search_accel_search = os.path.join(dir_accel_search, observation_name_no_extension, time_segments[j], chunk_label, 'DM%.2f' %dm, 'ZMAX_%d' %int(zmax))
+
+                                if accel_partition == 'gpu.q':
+                                    search_script = '''search=$(sbatch --parsable --job-name=accel_search --dependency=afterok:$dedisp --output=$logs/%s_accel_search_%s_%s_%s_%s_DM%.2f_zmax_%d.out --error=$logs/%s_accel_search_%s_%s_%s_%s_DM%.2f_zmax_%d.err -p gpu.q --gres=gpu:1 --export=ALL --cpus-per-task=%d --time=%s --mem=%s --wrap="%s/PERIODICITY_SEARCH_AND_COPY_BACK.sh %s %s %s %s %d %d %d %d %s %s %s %s %d")''' \
+                                    %(cluster, epoch, beam, time_segments[j], chunk_label, dm, zmax, cluster, epoch, beam, time_segments[j], chunk_label, dm, zmax, accel_cpus, accel_wall_clock, accel_ram, cwd, singularity_image, mount_path, code_directory, dat_file, zmax, wmax, accel_search_numharm, accel_cpus, working_dir_search_accel_search, output_dir, time_segments[j], chunk_label, gpu_accel_search_flag)
+                                else:
+                                    search_script = '''search=$(sbatch --parsable --job-name=accel_search --dependency=afterok:$dedisp --output=$logs/%s_accel_search_%s_%s_%s_%s_DM%.2f_zmax_%d.out --error=$logs/%s_accel_search_%s_%s_%s_%s_DM%.2f_zmax_%d.err -p %s --export=ALL --cpus-per-task=%d --time=%s --mem=%s --wrap="%s/PERIODICITY_SEARCH_AND_COPY_BACK.sh %s %s %s %s %d %d %d %d %s %s %s %s %d")''' \
+                                    %(cluster, epoch, beam, time_segments[j], chunk_label, dm, zmax, cluster, epoch, beam, time_segments[j], chunk_label, dm, zmax, accel_partition, accel_cpus, accel_wall_clock, accel_ram, cwd, singularity_image, mount_path, code_directory, dat_file, zmax, wmax, accel_search_numharm, accel_cpus, working_dir_search_accel_search, output_dir, time_segments[j], chunk_label, gpu_accel_search_flag)
+                                f.write(search_script + '\n' + '\n')
+                                f.write('slurmids="$slurmids:$search"' + '\n')
+                                f.write('check_job_submission_limit' + '\n')
+                            
                             if jerk_partition == 'gpu.q':
-                                search_script = '''search=$(sbatch --parsable --job-name=jerk_search --dependency=afterok:$dedisp --output=$logs/%s_jerk_search_%s_%s_%s_%s_DM%.2f.out --error=$logs/%s_jerk_search_%s_%s_%s_%s_DM%.2f.err -p gpu.q --gres=gpu:1 --export=ALL --cpus-per-task=%d --time=%s --mem=%s --wrap="%s/PERIODICITY_SEARCH_AND_COPY_BACK.sh %s %s %s %s %d %d %d %d %s %s %s %s")''' \
-                                %(cluster, epoch, beam, time_segments[j], chunk_label, dm, cluster, epoch, beam, time_segments[j], chunk_label, dm, jerk_cpus, jerk_wall_clock, jerk_ram, cwd, singularity_image, mount_path, code_directory, dat_file, jerk_search_zmax, jerk_search_wmax,jerk_search_numharm, jerk_search_cpus_per_proc, working_dir_search, output_dir, time_segments[j], chunk_label)
+                                search_script = '''search=$(sbatch --parsable --job-name=jerk_search --dependency=afterok:$dedisp --output=$logs/%s_jerk_search_%s_%s_%s_%s_DM%.2f.out --error=$logs/%s_jerk_search_%s_%s_%s_%s_DM%.2f.err -p gpu.q --gres=gpu:1 --export=ALL --cpus-per-task=%d --time=%s --mem=%s --wrap="%s/PERIODICITY_SEARCH_AND_COPY_BACK.sh %s %s %s %s %d %d %d %d %s %s %s %s %d")''' \
+                                %(cluster, epoch, beam, time_segments[j], chunk_label, dm, cluster, epoch, beam, time_segments[j], chunk_label, dm, jerk_cpus, jerk_wall_clock, jerk_ram, cwd, singularity_image, mount_path, code_directory, dat_file, jerk_search_zmax, jerk_search_wmax,jerk_search_numharm, jerk_cpus, working_dir_search_jerk_search, output_dir, time_segments[j], chunk_label, gpu_accel_search_flag)
                             else:
-                                 search_script = '''search=$(sbatch --parsable --job-name=jerk_search --dependency=afterok:$dedisp --output=$logs/%s_jerk_search_%s_%s_%s_%s_DM%.2f.out --error=$logs/%s_jerk_search_%s_%s_%s_%s_DM%.2f.err -p %s --export=ALL --cpus-per-task=%d --time=%s --mem=%s --wrap="%s/PERIODICITY_SEARCH_AND_COPY_BACK.sh %s %s %s %s %d %d %d %d %s %s %s %s")''' \
-                                %(cluster, epoch, beam, time_segments[j], chunk_label, dm, cluster, epoch, beam, time_segments[j], chunk_label, dm, jerk_partition, jerk_cpus, jerk_wall_clock, jerk_ram, cwd, singularity_image, mount_path, code_directory, dat_file, jerk_search_zmax, jerk_search_wmax,jerk_search_numharm, jerk_search_cpus_per_proc, working_dir_search, output_dir, time_segments[j], chunk_label)
+                                 search_script = '''search=$(sbatch --parsable --job-name=jerk_search --dependency=afterok:$dedisp --output=$logs/%s_jerk_search_%s_%s_%s_%s_DM%.2f.out --error=$logs/%s_jerk_search_%s_%s_%s_%s_DM%.2f.err -p %s --export=ALL --cpus-per-task=%d --time=%s --mem=%s --wrap="%s/PERIODICITY_SEARCH_AND_COPY_BACK.sh %s %s %s %s %d %d %d %d %s %s %s %s %d")''' \
+                                %(cluster, epoch, beam, time_segments[j], chunk_label, dm, cluster, epoch, beam, time_segments[j], chunk_label, dm, jerk_partition, jerk_cpus, jerk_wall_clock, jerk_ram, cwd, singularity_image, mount_path, code_directory, dat_file, jerk_search_zmax, jerk_search_wmax,jerk_search_numharm, jerk_cpus, working_dir_search_jerk_search, output_dir, time_segments[j], chunk_label, gpu_accel_search_flag)
                             f.write(search_script + '\n' + '\n')
                             f.write('slurmids="$slurmids:$search"' + '\n')
                             f.write('check_job_submission_limit' + '\n')

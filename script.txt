@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+
+#SBATCH -o output.%j
+#SBATCH -e error.%j
+#SBATCH -D ./
+#SBATCH -J PYTHON_SERIAL
+#SBATCH -p short.q
+#SBATCH --nodes=1             # request a full node
+#SBATCH --ntasks-per-node=1   # only start 1 task 
+#SBATCH --cpus-per-task=1    # assign one core to that first task 
+#SBATCH --time=00:10:00
+#SBATCH --mem=1GB
+#SBATCH --export=ALL
+
+
+module load r_anaconda/4.0.3
+
+
+
+echo srun python3 python_serial.py $SLURM_CPUS_PER_TASK

@@ -1,5 +1,13 @@
-M30_20220901_cfbf00150.fil
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+*.fil
 M30/
 slurm_job_logs/
-
+QUICK_ANALYSIS/
+slurm_jobs_*
 

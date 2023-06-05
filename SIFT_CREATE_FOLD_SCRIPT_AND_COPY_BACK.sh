@@ -12,7 +12,7 @@ rfifind_mask=${previous_results}/01_RFIFIND
 search_results=${previous_results}/03_DEDISPERSION
 
 #Cleaning up any prior runs
-rm -rf $working_dir
+#rm -rf $working_dir
 
 
 mkdir -p $working_dir
@@ -33,7 +33,7 @@ pm_config=${working_dir}/${basename_config}
 if [ $fold_timeseries == "1" ]; then
   rsync -Pav $search_results $working_dir
 else
-  rsync -Pav --exclude='*.dat' $search_results $working_dir
+  rsync -Pav --exclude='*.dat' --exclude='*.pfd*' $search_results $working_dir
 
 fi
 

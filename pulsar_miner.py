@@ -396,10 +396,12 @@ def sift_candidates(work_dir, LOG_basename, LOG_dir,  dedispersion_dir, observat
 
         sifting.short_period = period_to_search_min_s
         sifting.long_period = period_to_search_max_s
+        sifting.harm_pow_cutoff = 4.0
         print
         print "Selecting candidates with periods %.4f < P < %.4f seconds..." % (period_to_search_min_s, period_to_search_max_s), ; sys.stdout.flush()
         candidates.reject_shortperiod()
         candidates.reject_longperiod()
+        candidates.reject_harmpowcutoff()
         print "done!"
         
 
@@ -477,6 +479,8 @@ def fold_candidate(work_dir, LOG_basename, LOG_dir, raw_datafile, dir_dedispersi
                 execute_and_log(cmd_prepfold, work_dir, log_abspath, dict_env, flag_LOG_append)
         elif what_fold=="rawdata":
                 file_to_fold = raw_datafile
+                if candidate.p > 0.1:
+                        other_flags_prepfold += " -slow "
                 if seg == "full":
                         cmd_prepfold = "prepfold %s -noxwin -accelcand %d -accelfile %s/%s.cand -dm %.2f %s -mask %s -o raw_fold_%s_%s_%s_DM%.2f_%s    %s" % (other_flags_prepfold, cand.candnum, dir_accelfile, cand.filename, cand.DM, flag_ignorechan, mask, obs, seg, ck, cand.DM, str_zmax_wmax, file_to_fold)
                 else:

@@ -12,6 +12,8 @@ working_dir=$9
 output_dir=${10}
 segment=${11}
 chunk=${12}
+gpu_flag=${13}
+
 inf_file=${dat_file::-4}.inf
 
 #Cleaning up any prior runs
@@ -42,15 +44,29 @@ if [ $segment != "full" ]; then
     basename_dat=${basename_dat/full/$segment}
     basename_dat=${basename_dat/ck00/$chunk}
 fi
-singularity exec -H $HOME:/home1 -B $data_dir:$data_dir $sing_image python ${code_dir}/periodicity_search.py -i $basename_dat -z $zmax -w $wmax -n $ncpus -t $working_dir -s $numharm
-status=$?
-if [ $status -ne 0 ]; then
-    echo "Error in periodicity_search.py"
-    echo "Cleaning up"
-    rm -rf $working_dir
-    exit 1
-fi
 
+if [[ $gpu_flag -eq 1 ]]
+then
+
+    singularity exec -H $HOME:/home1 -B $data_dir:$data_dir $sing_image python ${code_dir}/periodicity_search.py -i $basename_dat -z $zmax -w $wmax -n $ncpus -t $working_dir -s $numharm
+    status=$?
+    if [ $status -ne 0 ]; then
+        echo "Error in periodicity_search.py"
+        echo "Cleaning up"
+        rm -rf $working_dir
+        exit 1
+    fi
+else
+    singularity exec -H $HOME:/home1 -B $data_dir:$data_dir $sing_image python ${code_dir}/periodicity_search.py -i $basename_dat -z $zmax -w $wmax -n $ncpus -t $working_dir -s $numharm -g
+    status=$?
+    if [ $status -ne 0 ]; then
+        echo "Error in periodicity_search.py"
+        echo "Cleaning up"
+        rm -rf $working_dir
+        exit 1
+    fi
+
+fi
 ## Copy Results back
 
 rsync -Pav $working_dir/*ACCEL*  $output_dir
