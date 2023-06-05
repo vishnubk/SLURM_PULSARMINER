@@ -360,7 +360,7 @@ def main():
     if not os.path.isfile(mask_file):
         print "ERROR: Mask file %s does not exist. Currently PULSARMINER only supports folding with a mask " % mask_file
         sys.exit()
-    LOG_dir = os.path.join(pm_config.root_workdir, "LOG_VISHNU")
+    LOG_dir = os.path.join(pm_config.root_workdir, "LOG")
     
 
     if not os.path.exists(LOG_dir): 
