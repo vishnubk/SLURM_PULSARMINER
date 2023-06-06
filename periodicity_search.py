@@ -26,7 +26,14 @@ def periodicity_search(data, zmax, wmax, ncpus, working_dir, num_harm=8, remove_
         subprocess.check_output(jerk_search_cmd, shell=True)
         
     else:
-        if accel_search_gpu_flag:
+        if zmax == 0:
+            num_harm = 32  # set -numharm to 32 if zmax = 0
+            print('Running Accel Search on %s using %d CPUs using 32 harmonic sums' % (data, ncpus))
+            accel_search_cmd = 'accelsearch -ncpus %d -numharm %d -zmax %d %s' % (ncpus, num_harm, zmax, data)
+            subprocess.check_output(accel_search_cmd, shell=True)
+
+        elif accel_search_gpu_flag and zmax != 0:
+
             original_ld_library_path = os.environ.get('LD_LIBRARY_PATH')
             original_path = os.environ.get('PATH')
             os.environ['LD_LIBRARY_PATH'] = "/usr/local/cuda/lib64:/usr/lib:/.singularity.d/libs:/software/presto2_on_gpu/lib"
@@ -38,7 +45,8 @@ def periodicity_search(data, zmax, wmax, ncpus, working_dir, num_harm=8, remove_
             subprocess.check_output(accel_search_cmd, shell=True)
             os.environ['LD_LIBRARY_PATH'] = original_ld_library_path
             os.environ['PATH'] = original_path
-        else:
+            
+        elif zmax != 0:
             print('Running Accel Search on %s using %d CPUs' % (data, ncpus))
             accel_search_cmd = 'accelsearch -ncpus %d -numharm %d -zmax %d %s' % (ncpus, num_harm, zmax, data)
             subprocess.check_output(accel_search_cmd, shell=True)
