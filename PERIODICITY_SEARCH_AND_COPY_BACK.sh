@@ -48,7 +48,7 @@ fi
 if [[ $gpu_flag -eq 1 ]]
 then
 
-    singularity exec -H $HOME:/home1 -B $data_dir:$data_dir $sing_image python ${code_dir}/periodicity_search.py -i $basename_dat -z $zmax -w $wmax -n $ncpus -t $working_dir -s $numharm
+    singularity exec --nv -H $HOME:/home1 -B $data_dir:$data_dir $sing_image python ${code_dir}/periodicity_search.py -i $basename_dat -z $zmax -w $wmax -n $ncpus -t $working_dir -s $numharm
     status=$?
     if [ $status -ne 0 ]; then
         echo "Error in periodicity_search.py"
@@ -57,7 +57,7 @@ then
         exit 1
     fi
 else
-    singularity exec -H $HOME:/home1 -B $data_dir:$data_dir $sing_image python ${code_dir}/periodicity_search.py -i $basename_dat -z $zmax -w $wmax -n $ncpus -t $working_dir -s $numharm -g
+    singularity exec --nv -H $HOME:/home1 -B $data_dir:$data_dir $sing_image python ${code_dir}/periodicity_search.py -i $basename_dat -z $zmax -w $wmax -n $ncpus -t $working_dir -s $numharm -g
     status=$?
     if [ $status -ne 0 ]; then
         echo "Error in periodicity_search.py"
