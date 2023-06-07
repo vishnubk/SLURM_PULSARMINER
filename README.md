@@ -1,12 +1,12 @@
 # **SLURM Pulsarminer: Streamlined Binary Pulsar Search Processing**
 
-**SLURM Pulsarminer**, is an efficient and tailored solution to facilitate the operation of the Pulsarminer software on High-Performance Computing (HPC) clusters. 
+**SLURM Pulsarminer**, is an efficient tool to facilitate the operation of the software Pulsarminer on High-Performance Computing (HPC) clusters. 
 
-This tool is currently compatibile with **Pulsarminer version 1.1.5 (08Jun2020)** and **PRESTO2**. It supports AccelSearch on CPU/GPU and Jerk Search on CPU. It requires a Singularity image with the necessary software installed.
+It is currently compatibile with **Pulsarminer version 1.1.5 (08Jun2020)** and **PRESTO2**. It supports AccelSearch on CPU/GPU and Jerk Search on CPU. It requires a Singularity image with the necessary software installed.
 
 ## Why SLURM Pulsarminer?
 
-Designed for those who need to process certain beams prior to others, **SLURM Pulsarminer** offers the ability to intelligently divide your dedispersion, jerk search, and folding trials for efficient parallel execution. For example, it significantly expedites the analysis of the central beam in a Globular Cluster observation before other beams.
+Designed for those who need to process certain beams prior to others, **SLURM Pulsarminer** offers the ability to intelligently divide your dedispersion, segmented and full length acceleration, jerk search, and folding trials for efficient parallel execution. For example, it significantly expedites the analysis of the central beam in a Globular Cluster observation before other beams.
 
 Many of the core routines are predominantly sourced from **PRESTO** or **Pulsarminer**.
 
