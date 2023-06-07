@@ -1,10 +1,10 @@
 # **A Slurm Wrapper Around PULSARMINER/PRESTO.**
 
 
-SLURM_PULSARMINER is currently compatible with pulsarminer version 1.1.5 (08Jun2020) and PRESTO2.
+SLURM_PULSARMINER is currently compatible with pulsarminer version 1.1.5 (08Jun2020) and PRESTO2. It supports accelsearch on a CPU/GPU
+and Jerk search on a CPU. Requires a singularity image with the installed software.
 
-
-**This software is written primary to run PULSARMINER on HPC clusters that use slurm and singularity. This maybe useful to you if priortising the processing of certain beams first is more important. For example if you would like to get the jerk search results of the central beam of a Globular Cluster observation before you process other beams, then this setup will significantly speed up your analysis. The software intelligently splits up your dedispersion, jerk search and folding trials efficiently to run them in parallel.**
+**This software is written primary to run PULSARMINER on HPC clusters that use slurm and singularity. This maybe useful to you if priortising the processing of certain beams first is more important. For example if you would like to get the acceleration and jerk search results of the central beam of a Globular Cluster observation before you process other beams, then this setup will significantly speed up your analysis. The software intelligently splits up your dedispersion, jerk search and folding trials efficiently to run them in parallel.**
 
 Most of the routines have been imported from either PRESTO or PULSARMINER.   
 
