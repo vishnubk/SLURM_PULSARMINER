@@ -50,11 +50,16 @@ fold_script_file=${working_dir}/05_FOLDING/$rawdata_basename/${basename_fold_scr
 cd ${working_dir}/05_FOLDING/$rawdata_basename/
 singularity exec -H $HOME:/home1 -B $data_dir:$data_dir $sing_image python pm_run_multithread -cmdfile $basename_fold_script_file -ncpus $ncpus
 
+#PS TO PNG HACK! ONLY WORKS IN MY LOCAL DIR.
+rsync -Pav $code_dir/ps_to_png_parallel.sh ${working_dir}/05_FOLDING/$rawdata_basename/
+singularity exec -H $HOME:/home1 -B $data_dir:$data_dir /u/vishnu/singularity_images/compare_pulsar_search_algorithms.simg ${working_dir}/05_FOLDING/$rawdata_basename/ps_to_png_parallel.sh 
 
 
 #Copy Results back
 
 rsync -Pav ${working_dir}/05_FOLDING $previous_results
 
+
 #Clean Up
 rm -rf $working_dir
+rm -rf $code_dir/$basename_fold_script_file

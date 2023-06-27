@@ -29,7 +29,7 @@ def periodicity_search(data, zmax, wmax, ncpus, working_dir, num_harm=8, remove_
         if zmax == 0:
             num_harm = 32  # set -numharm to 32 if zmax = 0
             print('Running Accel Search on %s using %d CPUs using 32 harmonic sums' % (data, ncpus))
-            accel_search_cmd = 'accelsearch -ncpus %d -numharm %d -zmax %d %s' % (ncpus, num_harm, zmax, data)
+            accel_search_cmd = 'accelsearch -sigma 1.5 -ncpus %d -numharm %d -zmax %d %s' % (ncpus, num_harm, zmax, data)
             subprocess.check_output(accel_search_cmd, shell=True)
 
         elif accel_search_gpu_flag and zmax != 0:
@@ -41,7 +41,7 @@ def periodicity_search(data, zmax, wmax, ncpus, working_dir, num_harm=8, remove_
             cuda_id = 0
             ncpus = 1
             print('Running Accel Search on %s using GPU %d' % (data, cuda_id))
-            accel_search_cmd = 'accelsearch -cuda %d -ncpus %d -numharm %d -zmax %d %s' % (cuda_id, ncpus, num_harm, zmax, data)
+            accel_search_cmd = 'accelsearch -sigma 1.5 -cuda %d -ncpus %d -numharm %d -zmax %d %s' % (cuda_id, ncpus, num_harm, zmax, data)
             subprocess.check_output(accel_search_cmd, shell=True)
             os.environ['LD_LIBRARY_PATH'] = original_ld_library_path
             os.environ['PATH'] = original_path

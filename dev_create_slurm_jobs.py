@@ -265,6 +265,15 @@ def call_pulsarminer_birdies(cluster, epoch, beam, pm_config, LOG_dir, verbosity
         #                         zaplist_file.write("B%21.14f   %19.17f\n" % (dict_freqs_to_zap[psr]*i_harm, fourier_bin_size*i_harm))
         #         zaplist_file.close()
 
+def create_slurm_job_script(job_name, dependency, output, error, partition, cpus, time, mem, wrap):
+    if partition in ['gpu.q', 'short.q']:
+        return '''search=$(sbatch --parsable --job-name=%s --dependency=%s --output=%s --error=%s -p %s --gres=gpu:1 --export=ALL --cpus-per-task=%d --time=%s --mem=%s --wrap="%s")''' % (job_name, dependency, output, error, partition, cpus, time, mem, wrap)
+    else:
+        return '''search=$(sbatch --parsable --job-name=%s --dependency=%s --output=%s --error=%s -p %s --export=ALL --cpus-per-task=%d --time=%s --mem=%s --wrap="%s")''' % (job_name, dependency, output, error, partition, cpus, time, mem, wrap)
+
+
+
+
 def main():
     args = parser.parse_args()
     # Read config file and input data
@@ -300,6 +309,7 @@ def main():
 
     # Single observation datapath
     pm_config.list_datafiles_abspath     = os.path.join(pm_config.folder_datafiles, pm_config.list_datafiles)
+
     # Single observation object
     pm_config.list_Observations          = Observation(pm_config.list_datafiles_abspath, pm_config.data_type)
     dir_birdies = os.path.join(cluster, epoch, beam, "02_BIRDIES")
@@ -623,7 +633,7 @@ def main():
                                 f.write('check_job_submission_limit' + '\n')
 
                             if jerk_search_wmax > 0:
-                                
+
                                 if jerk_partition == 'gpu.q':
                                     search_script = '''search=$(sbatch --parsable --job-name=jerk_search --dependency=afterok:$dedisp --output=$logs/%s_jerk_search_%s_%s_%s_%s_DM%.2f.out --error=$logs/%s_jerk_search_%s_%s_%s_%s_DM%.2f.err -p gpu.q --gres=gpu:1 --export=ALL --cpus-per-task=%d --time=%s --mem=%s --wrap="%s/PERIODICITY_SEARCH_AND_COPY_BACK.sh %s %s %s %s %d %d %d %d %s %s %s %s %d")''' \
                                     %(cluster, epoch, beam, time_segments[j], chunk_label, dm, cluster, epoch, beam, time_segments[j], chunk_label, dm, jerk_cpus, jerk_wall_clock, jerk_ram, cwd, singularity_image, mount_path, code_directory, dat_file, jerk_search_zmax, jerk_search_wmax,jerk_search_numharm, jerk_cpus, working_dir_search_jerk_search, output_dir, time_segments[j], chunk_label, gpu_accel_search_flag)
