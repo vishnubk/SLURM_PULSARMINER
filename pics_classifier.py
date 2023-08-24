@@ -19,11 +19,24 @@ def mkdir_p(path):
             raise
 
 
-def run_pics(filenames, pics_model, model_name):
+def run_pics_parallel(filenames, pics_model, model_name):
     classifier_model = cPickle.load(open(pics_model,'rb'))
     AI_scores = classifier_model.report_score([pfdreader(f) for f in filenames])
     df = pd.DataFrame({'filename': filenames, model_name: AI_scores})
     return df
+
+def run_pics(filenames, pics_model, model_name):
+    classifier_model = cPickle.load(open(pics_model, 'rb'))
+    AI_scores = []
+    for f in filenames:
+        try:
+            score = classifier_model.report_score([pfdreader(f)])
+            AI_scores.append(score)
+        except Exception as e:
+            AI_scores.append(0)
+    df = pd.DataFrame({'filename': filenames, model_name: AI_scores})
+    return df
+
 
 def main(input_dir, pics_model, output_dir):
     os.chdir(input_dir)
@@ -34,15 +47,18 @@ def main(input_dir, pics_model, output_dir):
     #change order of columns
     df = df[['filename', model_name]]
     df.to_csv('pics_%s.csv' % model_name, index=False)
-    # Copy high scoring files to a new directory
-    high_score = df.loc[df[model_name] > 0.5]
-    low_score = df.loc[(df[model_name] <= 0.5) & (df[model_name] > 0.1)]
 
     if output_dir:
+         # Copy high scoring files to a new directory
+        high_score = df.loc[df[model_name] > 0.5]
+        low_score = df.loc[(df[model_name] <= 0.5) & (df[model_name] > 0.1)]
+        rest = df.loc[(df[model_name] <= 0.1)]
         high_scoring_output_dir = os.path.join(output_dir, 'ABOVE_50')
         low_scoring_output_dir = os.path.join(output_dir, '10_50')
+        rest_output_dir = os.path.join(output_dir, 'REST')
         mkdir_p(high_scoring_output_dir)
         mkdir_p(low_scoring_output_dir)
+        mkdir_p(rest_output_dir)
 
         for index, row in high_score.iterrows():
             png_file = row['filename'].replace('.pfd', '.pfd.png')
@@ -60,7 +76,13 @@ def main(input_dir, pics_model, output_dir):
                 cmds = 'cp %s %s' % (row['filename'], low_scoring_output_dir)
             subprocess.check_output(cmds, shell=True)
 
-
+        for index, row in rest.iterrows():
+            png_file = row['filename'].replace('.pfd', '.pfd.png')
+            if os.path.exists(png_file):
+                cmds = 'cp %s %s' % (png_file, rest_output_dir)
+            else:
+                cmds = 'cp %s %s' % (row['filename'], rest_output_dir)
+            #subprocess.check_output(cmds, shell=True)
 
 
 

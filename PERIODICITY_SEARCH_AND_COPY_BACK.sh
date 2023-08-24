@@ -16,6 +16,19 @@ gpu_flag=${13}
 
 inf_file=${dat_file::-4}.inf
 
+
+# Check if the output file exists
+base_name=$(basename "$dat_file")
+file_string=$(echo "$base_name" | awk -F'_' '{print $1"_"$2"_"$3}')_${segment}_${chunk}
+dm_value="DM${base_name##*DM}"; dm_value=${dm_value%.dat}
+
+output_search_file=${output_dir}/${file_string}_${dm_value}_ACCEL_${zmax}
+echo $output_search_file
+if [ -s "$output_search_file" ]; then
+    echo "Output File: $(basename $output_search_file) exists, exiting."
+    exit 0
+fi
+
 #Cleaning up any prior runs
 rm -rf $working_dir
 

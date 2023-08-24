@@ -12,4 +12,6 @@ slurm_job_logs/
 QUICK_ANALYSIS/
 slurm_jobs_*
 *.pkl
+*.pyc
 ML_SELECTED/
+CANDIDATE_VIEWER/

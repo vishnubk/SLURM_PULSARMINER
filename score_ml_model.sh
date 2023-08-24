@@ -1,9 +1,10 @@
 #!/bin/bash
 
 model=/hercules/scratch/vishnu/SLURM_PULSARMINER/MeerKAT_L_SBAND_COMBINED_Best_Recall.pkl
-epoch=20201020
+epoch=20201105
 cluster=NGC6397
 results_dir_high_score=/hercules/scratch/vishnu/SLURM_PULSARMINER/ML_SELECTED/$cluster/$epoch/
+mkdir -p $results_dir_high_score
 for dir in /hercules/scratch/vishnu/SLURM_PULSARMINER/$cluster/$epoch/*;do
     basename_dir=$(basename $dir)
     fold_dir=$dir/05_FOLDING/${cluster}_${epoch}_${basename_dir}

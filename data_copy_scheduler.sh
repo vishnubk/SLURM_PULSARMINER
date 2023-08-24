@@ -2,15 +2,18 @@
 
 USER="vishnu"
 HOST="archive"
-DATA_DIR="/p/MFR/MEERKAT/TRAPUM/TRAPUM_517/TRAPUM/SCI-20180923-MK-04/J1740-5340A/2020-10-20-17:40:28/1284/"
-OUTPUT_DIR="/hercules/scratch/vishnu/TRAPUM/observations/NGC6397/20201020_OBS2/"
+#DATA_DIR="/p/MFR/MEERKAT/TRAPUM/TRAPUM_517/TRAPUM/SCI-20180923-MK-04/J1740-5340A/2020-10-20-15:40:16/1284/"
+#DATA_DIR="/p/MFR/MEERKAT/TRAPUM/TRAPUM_517/TRAPUM/SCI-20180923-MK-04/J1740-5340A/2020-11-05-10:13:37/1284/"
+DATA_DIR="/p/MFR/MEERKAT/TRAPUM/TRAPUM_518/TRAPUM/SCI-20180923-MK-04/J1740-5340A/2020-11-05-10:13:37/1284/"
+OUTPUT_DIR="/hercules/scratch/vishnu/TRAPUM/observations/NGC6397/20201105/"
 filtool_img="/u/vishnu/singularity_images/pulsarx_latest.sif"
 filtool_cmd="filtool -t 12 --telescope meerkat -z zdot --cont"
 cluster="NGC6397"
-epoch="20201020"
+epoch="20201105"
 code_dir="/hercules/scratch/vishnu/SLURM_PULSARMINER/"
-pm_config_file="NGC6397_20201020_accel_search.config"
-PROCESSED_FILE="${code_dir}processed_dirs_NGC6397_20201020_OBS2.txt"
+#pm_config_file="NGC6397_20201020_accel_search.config"
+pm_config_file="NGC6397_20201105_accel_search_only.config"
+PROCESSED_FILE="${code_dir}processed_dirs_NGC6397_20201105.txt"
 
 
 # Create the processed file if it doesn't exist
@@ -30,6 +33,15 @@ do
     echo "${SUBDIR} has already been processed. Skipping."
     continue
     fi
+ 
+    # Check if the file size on the remote server is less than 100MB
+    #REMOTE_SIZE=$(ssh ${USER}@${HOST} du -sB1 "${SUBDIR}" | cut -f1)
+
+    #if [ ${REMOTE_SIZE} -lt 104857600 ]
+    #then
+    #    echo "${SUBDIR} is less than 100MB. Skipping."
+    #    continue
+    #fi
 
     echo "Starting rsync for ${SUBDIR}"
 
@@ -76,7 +88,8 @@ do
         continue
     fi
 
-    echo "Started Pulsarminer for ${cluster}_${epoch}_${beam}_zdot_01.fil. Sleeping for 2 hours..."
+    #echo "Started Pulsarminer for ${cluster}_${epoch}_${beam}_zdot_01.fil. Sleeping for 1 hours..."
+    echo "Started Pulsarminer for ${cluster}_${epoch}_${beam}_zdot_01.fil. Sleeping for 40 minutes..."
     # Mark this directory as processed
     echo ${SUBDIR} >> ${PROCESSED_FILE}
 
@@ -89,7 +102,7 @@ do
     done
 
     # Sleep for 2 hours 
-    sleep 2h
+    sleep 40m
 
 done
 
