@@ -107,8 +107,8 @@ do
        fi
     done
 
-    # Sleep for 2 hours 
-    sleep 2h
+    # Sleep for 4 hours 
+    sleep 4h
 
 done
 

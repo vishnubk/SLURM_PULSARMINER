@@ -191,60 +191,40 @@ source ${code_directory}/slurm_jobs_${CLUSTER}_${EPOCH}_${BEAM}.sh
 
 fold_script_filename=${CLUSTER}/${EPOCH}/${BEAM}/05_FOLDING/${CLUSTER}_${EPOCH}_${BEAM}/script_fold.txt
 fold_batch_number=1
-declare -a job_ids
-
 while true; do
     if [ -f $fold_script_filename ]; then
+        # Get the number of lines in the file
         num_lines=$(wc -l < $fold_script_filename)
 
         if [ "$num_lines" -gt 0 ]; then
-            for i in $(seq 0 $((fold_cpus_per_task - 1)) $((num_lines - 1))); do
-                batch_size=$((num_lines - i))
-                if [ "$batch_size" -gt "$fold_cpus_per_task" ]; then
-                    batch_size=$fold_cpus_per_task
-                fi
+        # Divide the lines into batches of $fold_cpus_per_task or less
+        for i in $(seq 0 $((fold_cpus_per_task - 1)) $((num_lines - 1))); do
+            # Calculate the number of lines in this batch
+            batch_size=$((num_lines - i))
+            if [ "$batch_size" -gt "$fold_cpus_per_task" ]; then
+            batch_size=$fold_cpus_per_task
+            fi
 
-                start=$((i + 1))
-                end=$((i + batch_size))
-                sed -n "${start},${end}p" $fold_script_filename > ${CLUSTER}_${EPOCH}_${BEAM}_fold_commands_batch_${fold_batch_number}.txt
+            # Get the lines for this batch and write them to a temporary file
+            start=$((i + 1))
+            end=$((i + batch_size))
+            sed -n "${start},${end}p" $fold_script_filename > ${CLUSTER}_${EPOCH}_${BEAM}_fold_commands_batch_${fold_batch_number}.txt
 
-                job_id=$(sbatch --parsable --job-name=$fold_job_name --output=$logs/${CLUSTER}_fold_${EPOCH}_${BEAM}_batch_${fold_batch_number}.out --error=$logs/${CLUSTER}_fold_${EPOCH}_${BEAM}_batch_${fold_batch_number}.err -p ${fold_partition} --export=ALL --cpus-per-task=$batch_size --time=$fold_wall_clock --mem=$fold_ram_per_job ${code_directory}/FOLD_AND_COPY_BACK.sh ${singularity_image_path} ${mount_path} ${code_directory} ${tmp_working_dir} ${code_directory}/${CLUSTER}/${EPOCH}/${BEAM} ${obs_file} ${CLUSTER}_${EPOCH}_${BEAM}_fold_commands_batch_${fold_batch_number}.txt $batch_size $pm_config_file)
-                job_ids+=("$job_id")
-
-                fold_batch_number=$((fold_batch_number + 1))
-            done
-
-            all_job_ids=$(IFS=, ; echo "${job_ids[*]}")
-            
-            # Wait for all jobs to complete
-            while true; do
-                statuses=$(sacct -j $all_job_ids --format=JobID,State --noheader -P)
-                unique_completed=$(echo "$statuses" | awk -F'|' '$2=="COMPLETED" && !/\./{print $1}' | wc -l)
-
-                if [ "$unique_completed" -eq ${#job_ids[@]} ]; then
-                    echo "All folding jobs completed."
-                    echo "${BEAM}" >> search_completed_beams_${CLUSTER}_${EPOCH}.txt
-                    break
-                else
-                    echo "Completed Jobs: $unique_completed of ${#job_ids[@]}. Folding Jobs are still running. Sleeping for 10 minutes."
-                    sleep 600
-                fi
-            done
-
-            
-
-
+            sbatch --job-name=$fold_job_name --output=$logs/${CLUSTER}_fold_${EPOCH}_${BEAM}_batch_${fold_batch_number}.out --error=$logs/${CLUSTER}_fold_${EPOCH}_${BEAM}_batch_${fold_batch_number}.err -p ${fold_partition} --export=ALL --cpus-per-task=$batch_size --time=$fold_wall_clock --mem=$fold_ram_per_job ${code_directory}/FOLD_AND_COPY_BACK.sh ${singularity_image_path} ${mount_path} ${code_directory} ${tmp_working_dir} ${code_directory}/${CLUSTER}/${EPOCH}/${BEAM} ${obs_file} ${CLUSTER}_${EPOCH}_${BEAM}_fold_commands_batch_${fold_batch_number}.txt $batch_size $pm_config_file
+            fold_batch_number=$((fold_batch_number + 1))
+        done
         elif [ "$num_lines" -eq 0 ]; then
-            echo "No candidates found to fold. Exiting."
+        echo "No candidates found to fold. Exiting."
         fi
 
+        # Exit the loop once we've processed the file
         break
     fi
 
+    # Wait 10 minutes before checking again
     echo "Waiting for folding script to be created. Going to sleep for 10 minutes."
     sleep 600
 done
-
 
 #delete dat files after folding
 rm -rf ${code_directory}/${CLUSTER}/${EPOCH}/${BEAM}/03_DEDISPERSION/${CLUSTER}_${EPOCH}_${BEAM}/full/ck00/*.dat
