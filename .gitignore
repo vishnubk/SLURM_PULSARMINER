@@ -14,5 +14,12 @@ slurm_jobs_*
 *.pkl
 *.pyc
 ML_SELECTED/
+ML_MODELS/
 CANDIDATE_VIEWER/
 *fold_commands*
+processed*
+SEARCH_PROGRESS/
+NGC441/
+test.config
+NGC6441.config
+

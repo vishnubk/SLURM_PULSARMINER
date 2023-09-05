@@ -385,6 +385,8 @@ def main():
     if ndm_trials % dedisp_cpu_cores != 0:
           total_batches = loop_trials + 1
    
+    accel_search_beam_count = 0
+    jerk_search_beam_count = 0
     # Create a slurm job file for dedispersion
     with open('slurm_jobs_%s.sh' %observation_name_no_extension, 'w') as f:
         f.write('#!/bin/bash' + '\n')
@@ -451,6 +453,7 @@ def main():
                             f.write(search_script + '\n' + '\n')
                             f.write('slurmids="$slurmids:$search"' + '\n')
                             f.write('check_job_submission_limit' + '\n')
+                            accel_search_beam_count+=1
                         
                         if jerk_search_wmax > 0:
                             # Create a slurm job file for jerk search
@@ -464,6 +467,7 @@ def main():
                             f.write(search_script + '\n' + '\n')
                             f.write('slurmids="$slurmids:$search"' + '\n')
                             f.write('check_job_submission_limit' + '\n')
+                            jerk_search_beam_count+=1
                 
                 else:
                     time_chunk = float(time_segments[j].replace('m','')) * 60
@@ -498,6 +502,7 @@ def main():
                                 f.write(search_script + '\n' + '\n')
                                 f.write('slurmids="$slurmids:$search"' + '\n')
                                 f.write('check_job_submission_limit' + '\n')
+                                accel_search_beam_count+=1
 
                             if jerk_search_wmax > 0:
                                 # Create a slurm job for jerk search
@@ -512,6 +517,7 @@ def main():
                                 f.write(search_script + '\n' + '\n')
                                 f.write('slurmids="$slurmids:$search"' + '\n')
                                 f.write('check_job_submission_limit' + '\n')
+                                jerk_search_beam_count+=1
         
         # In case the number of DMs is not divisible by the number of cores, we do the remaining now by adjusting the cpus-per-task.
         if ndm_trials % dedisp_cpu_cores != 0:
@@ -572,6 +578,7 @@ def main():
                             f.write(search_script + '\n' + '\n')
                             f.write('slurmids="$slurmids:$search"' + '\n')
                             f.write('check_job_submission_limit' + '\n')
+                            accel_search_beam_count+=1
 
                         if jerk_search_wmax > 0:
                             # Create a slurm job for jerk search
@@ -586,6 +593,7 @@ def main():
                             f.write(search_script + '\n' + '\n')
                             f.write('slurmids="$slurmids:$search"' + '\n')
                             f.write('check_job_submission_limit' + '\n')
+                            jerk_search_beam_count+=1
                 
                 else:
                     
@@ -621,6 +629,7 @@ def main():
                                 f.write(search_script + '\n' + '\n')
                                 f.write('slurmids="$slurmids:$search"' + '\n')
                                 f.write('check_job_submission_limit' + '\n')
+                                accel_search_beam_count+=1
 
                             if jerk_search_wmax > 0:
                                 
@@ -633,16 +642,69 @@ def main():
                                 f.write(search_script + '\n' + '\n')
                                 f.write('slurmids="$slurmids:$search"' + '\n')
                                 f.write('check_job_submission_limit' + '\n')
+                                jerk_search_beam_count+=1
         
+        root_dir_check_progress = os.path.join(cluster, epoch, beam, "03_DEDISPERSION")
+        expected_accel_search_files_per_category = int(accel_search_beam_count/len(list_accel_search_zmax))
+        expected_jerk_search_files = jerk_search_beam_count
+
+        f.write('mkdir -p SEARCH_PROGRESS\n')
+        f.write('progress_file="SEARCH_PROGRESS/search_progress_%s_%s_%s.txt"\n' %(cluster, epoch, beam))
+
+        if expected_accel_search_files_per_category > 0:
+            f.write('###################################### Loop to check accel-search progress ##################################################################' + '\n')
+            
+            for zmax in list_accel_search_zmax:
+                f.write('  # Count the number of files matching *_ACCEL_%d.txtcand in the directory\n' % int(zmax))
+                f.write('while true; do\n')
+                cmds = "found_files=$(find %s -name '*_ACCEL_%d.txtcand' | wc -l)" %(root_dir_check_progress, int(zmax))
+                f.write('  ' + cmds + '\n')
+                
+                f.write('  # If the number of found files is not what is expected, sleep and check again\n')
+                f.write('  if [ $found_files -lt %d ]; then\n' % expected_accel_search_files_per_category)
+                f.write('    echo "Date: $(date), Search Progress for zmax %d: $(echo "scale=2; ($found_files / %d) * 100" | bc)%%"\n' % (zmax, expected_accel_search_files_per_category))
+                f.write('    echo "Date: $(date), Search Progress for zmax %d: $(echo "scale=2; ($found_files / %d) * 100" | bc)%%" >> $progress_file\n' % (zmax, expected_accel_search_files_per_category))
+                f.write('    echo Sleeping for 30m\n')
+                f.write('    sleep 30m\n')
+                f.write('  else\n')
+                f.write('    echo "Search Category zmax: %d completed."\n' % int(zmax))
+                f.write('    echo "Search Category zmax: %d completed." >> $progress_file\n' % int(zmax))
+                f.write('    break\n')
+                f.write('  fi\n')
+                f.write('done\n')
+        
+        if expected_jerk_search_files > 0:
+            f.write('###################################### Loop to check jerk-search progress ##################################################################' + '\n')
+            f.write('  # Count the number of files matching *ACCEL_%d_JERK_%d.txtcand in the directory\n' %(jerk_search_zmax, jerk_search_wmax))
+            f.write('while true; do\n')
+            cmds = "found_files=$(find %s -name '*ACCEL_%d_JERK_%d.txtcand' | wc -l)" %(root_dir_check_progress, jerk_search_zmax, jerk_search_wmax)
+            f.write('  ' + cmds + '\n')
+
+            f.write('  # If the number of found files is not what is expected, sleep and check again\n')
+            f.write('  if [ $found_files -lt %d ]; then\n' % expected_jerk_search_files)
+            f.write('    echo "Date: $(date), Jerk Search Progress: $(echo "scale=2; ($found_files / %d) * 100" | bc)%%"\n' % expected_jerk_search_files)
+            f.write('    echo "Date: $(date), Jerk Search Progress: $(echo "scale=2; ($found_files / %d) * 100" | bc)%%" >> $progress_file\n' % expected_jerk_search_files)
+            f.write('    echo Sleeping for 30m\n')
+            f.write('    sleep 30m\n')
+            f.write('  else\n')
+            f.write('    echo "Jerk Search completed."\n')
+            f.write('    echo "Jerk Search completed." >> $progress_file\n')
+            f.write('    break\n')
+            f.write('  fi\n')
+            f.write('done\n')
+       
+
         #Start the slurm sifting job. This will run after all the dedispersion and periodicity search jobs have finished
         f.write('###################################### Running Sifting on Cluster %s, Epoch %s, Beam %s using %d CPUs   ##################################################################' %(cluster, epoch, beam, sift_cpus) + '\n')
         tmp_dir_sifting_and_fold_script_creation = os.path.join(pm_config.root_workdir, cluster, epoch, beam)
         output_dir = os.path.join(cluster, epoch, beam)
         output_dir = os.path.abspath(output_dir)
-        sift_and_create_fold_script = '''sift_and_create_fold_command_file=$(sbatch --parsable --job-name=sift_and_create_fold_command_file --dependency=afterok$slurmids --output=$logs/%s_sift_and_create_fold_command_file_%s_%s.out --error=$logs/%s_sift_and_create_fold_command_file_%s_%s.err -p %s --export=ALL --cpus-per-task=%d --time=%s --mem=%s --wrap="%s/SIFT_CREATE_FOLD_SCRIPT_AND_COPY_BACK.sh %s %s %s %s %s %s %s")''' %(cluster, epoch, beam, cluster, epoch, beam, sift_partition, sift_cpus, sift_wall_clock, sift_ram, code_directory, singularity_image, mount_path, code_directory, tmp_dir_sifting_and_fold_script_creation, output_dir, full_data_path, os.path.abspath(pulsarminer_config_file))
+        #sift_and_create_fold_script = '''sift_and_create_fold_command_file=$(sbatch --parsable --job-name=sift_and_create_fold_command_file --dependency=afterok$slurmids --output=$logs/%s_sift_and_create_fold_command_file_%s_%s.out --error=$logs/%s_sift_and_create_fold_command_file_%s_%s.err -p %s --export=ALL --cpus-per-task=%d --time=%s --mem=%s --wrap="%s/SIFT_CREATE_FOLD_SCRIPT_AND_COPY_BACK.sh %s %s %s %s %s %s %s")''' %(cluster, epoch, beam, cluster, epoch, beam, sift_partition, sift_cpus, sift_wall_clock, sift_ram, code_directory, singularity_image, mount_path, code_directory, tmp_dir_sifting_and_fold_script_creation, output_dir, full_data_path, os.path.abspath(pulsarminer_config_file))
+        sift_and_create_fold_script = '''sift_and_create_fold_command_file=$(sbatch --parsable --job-name=sift_and_create_fold_command_file --output=$logs/%s_sift_and_create_fold_command_file_%s_%s.out --error=$logs/%s_sift_and_create_fold_command_file_%s_%s.err -p %s --export=ALL --cpus-per-task=%d --time=%s --mem=%s --wrap="%s/SIFT_CREATE_FOLD_SCRIPT_AND_COPY_BACK.sh %s %s %s %s %s %s %s")''' %(cluster, epoch, beam, cluster, epoch, beam, sift_partition, sift_cpus, sift_wall_clock, sift_ram, code_directory, singularity_image, mount_path, code_directory, tmp_dir_sifting_and_fold_script_creation, output_dir, full_data_path, os.path.abspath(pulsarminer_config_file))
+
         f.write(sift_and_create_fold_script + '\n' + '\n')
-        f.write('slurmids="$slurmids:$sift_script"' + '\n')
-        f.write('check_job_submission_limit' + '\n')
+        # f.write('slurmids="$slurmids:$sift_script"' + '\n')
+        # f.write('check_job_submission_limit' + '\n')
                     
    
 
