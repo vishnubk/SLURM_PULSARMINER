@@ -30,9 +30,6 @@ SUBDIRS=$(ssh ${USER}@${HOST} "find ${DATA_DIR} -mindepth 1 -maxdepth 1 -type d 
 # Iterate over each subdirectory
 for SUBDIR in ${SUBDIRS}
 do  
-    if [[ "$SUBDIR" != "${DATA_DIR}cfbf00012" ]]; then
-        continue
-    fi
     # Check if this subdirectory has been processed
     if grep -Fxq "${SUBDIR}" ${PROCESSED_FILE}
     then
