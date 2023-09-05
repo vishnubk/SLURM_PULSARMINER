@@ -18,7 +18,15 @@ pm_config_file=""
 tmp_dir="/tmp"
 
 # get the maximum number of jobs that the user can submit minus 5. This is to ensure that the user has some jobs left to submit manually
-maxjobs=$(( $(sacctmgr list associations format=user,maxsubmitjobs -n | grep $USER | awk '{print $2}') - 5 ))
+#maxjobs=$(( $(sacctmgr list associations format=user,maxsubmitjobs -n | grep $USER | awk '{print $2}') - 5 ))
+maxjobs_raw=$(sacctmgr list associations format=user,maxsubmitjobs -n | grep $USER | awk '{print $2}')
+maxjobs=$(( maxjobs_raw - 5 ))
+
+# If maxjobs is greater than 20k, fix it at 20k
+if [ "$maxjobs" -gt 20000 ]; then
+    maxjobs=20000
+fi
+
 slurm_user_requested_jobs=$maxjobs
 # parse command-line arguments
 while getopts ":hm:o:p:t:" opt; do
@@ -244,7 +252,6 @@ while true; do
     echo "Waiting for folding script to be created. Going to sleep for 10 minutes."
     sleep 600
 done
-
 
 #delete dat files after folding
 rm -rf ${code_directory}/${CLUSTER}/${EPOCH}/${BEAM}/03_DEDISPERSION/${CLUSTER}_${EPOCH}_${BEAM}/full/ck00/*.dat
