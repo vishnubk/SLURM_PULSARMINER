@@ -608,9 +608,6 @@ def main():
                     
                         for dm in dm_loop_trials:
                             dat_file = os.path.join(full_length_dat_file_dir, '%s_%s_%s_full_ck00_DM%.2f.dat' %(cluster, epoch, beam, dm))
-                            #dat_file = os.path.join(output_dir, '%s_%s_%s_%s_%s_DM%.2f.dat' %(cluster, epoch, beam, time_segments[j], chunk_label, dm))
-                            #working_dir_search = os.path.join(dir_jerk_search, observation_name_no_extension, time_segments[j], chunk_label, 'DM%.2f' %(dm))
-                            #working_dir_search_accel_search = os.path.join(dir_accel_search, observation_name_no_extension, time_segments[j], chunk_label, 'DM%.2f' %dm)
                             working_dir_search_jerk_search = os.path.join(dir_jerk_search, observation_name_no_extension, time_segments[j], chunk_label, 'DM%.2f' %dm)
 
                             # Create a slurm job file for jerk search
@@ -657,38 +654,57 @@ def main():
             for zmax in list_accel_search_zmax:
                 f.write('  # Count the number of files matching *_ACCEL_%d.txtcand in the directory\n' % int(zmax))
                 f.write('while true; do\n')
-                cmds = "found_files=$(find %s -name '*_ACCEL_%d.txtcand' | wc -l)" %(root_dir_check_progress, int(zmax))
+                cmds = "found_files=$(find %s -name '*_ACCEL_%d.txtcand' | wc -l)" % (root_dir_check_progress, int(zmax))
                 f.write('  ' + cmds + '\n')
-                
-                f.write('  # If the number of found files is not what is expected, sleep and check again\n')
+
+                # Calculate the percentage and prepare the progress bar
+                f.write('  percentage=$(( 100 * $found_files / %d ))\n' % expected_accel_search_files_per_category)
+                f.write('  bar=""\n')
+                f.write('  for i in $(seq 1 $percentage); do\n')
+                f.write('    bar="${bar}#"\n')
+                f.write('  done\n')
+                f.write('  for i in $(seq 1 $((100 - $percentage))); do\n')
+                f.write('    bar="${bar} "\n')
+                f.write('  done\n')
+
+                # Display on terminal
+                f.write('  echo -ne "Date: $(date), Search Progress for zmax %d: [${bar}] $percentage%% \\r"\n' % zmax)
+
+                # Log to progress_file
+                f.write('  echo "Date: $(date), Search Progress for zmax %d: [${bar}] $percentage%%" >> $progress_file\n' % zmax)
+
+                # Check the condition
                 f.write('  if [ $found_files -lt %d ]; then\n' % expected_accel_search_files_per_category)
-                f.write('    echo "Date: $(date), Search Progress for zmax %d: $(echo "scale=2; ($found_files / %d) * 100" | bc)%%"\n' % (zmax, expected_accel_search_files_per_category))
-                f.write('    echo "Date: $(date), Search Progress for zmax %d: $(echo "scale=2; ($found_files / %d) * 100" | bc)%%" >> $progress_file\n' % (zmax, expected_accel_search_files_per_category))
-                f.write('    echo Sleeping for 30m\n')
                 f.write('    sleep 30m\n')
                 f.write('  else\n')
-                f.write('    echo "Search Category zmax: %d completed."\n' % int(zmax))
-                f.write('    echo "Search Category zmax: %d completed." >> $progress_file\n' % int(zmax))
+                f.write('    echo -e "\\nSearch Category zmax: %d completed." \n' % int(zmax))
+                f.write('    echo "Search Category zmax: %d completed. Date: $(date)" >> $progress_file\n' % int(zmax))
                 f.write('    break\n')
                 f.write('  fi\n')
                 f.write('done\n')
+
         
         if expected_jerk_search_files > 0:
             f.write('###################################### Loop to check jerk-search progress ##################################################################' + '\n')
-            f.write('  # Count the number of files matching *ACCEL_%d_JERK_%d.txtcand in the directory\n' %(jerk_search_zmax, jerk_search_wmax))
+            f.write('  # Count the number of files matching *ACCEL_%d_JERK_%d.txtcand in the directory\n' % (jerk_search_zmax, jerk_search_wmax))
             f.write('while true; do\n')
-            cmds = "found_files=$(find %s -name '*ACCEL_%d_JERK_%d.txtcand' | wc -l)" %(root_dir_check_progress, jerk_search_zmax, jerk_search_wmax)
+            cmds = "found_files=$(find %s -name '*ACCEL_%d_JERK_%d.txtcand' | wc -l)" % (root_dir_check_progress, jerk_search_zmax, jerk_search_wmax)
             f.write('  ' + cmds + '\n')
+
+            f.write('  percentage=$(echo "scale=2; ($found_files / %d) * 100" | bc)\n' % expected_jerk_search_files)
+            f.write('  num_hashes=$(echo "($found_files * 50)/%d" | bc)\n' % expected_jerk_search_files)
+            f.write('  bar=$(printf "%-${num_hashes}s" "#")\n')
+            f.write('  bar=${bar// /#}\n')
 
             f.write('  # If the number of found files is not what is expected, sleep and check again\n')
             f.write('  if [ $found_files -lt %d ]; then\n' % expected_jerk_search_files)
-            f.write('    echo "Date: $(date), Jerk Search Progress: $(echo "scale=2; ($found_files / %d) * 100" | bc)%%"\n' % expected_jerk_search_files)
-            f.write('    echo "Date: $(date), Jerk Search Progress: $(echo "scale=2; ($found_files / %d) * 100" | bc)%%" >> $progress_file\n' % expected_jerk_search_files)
-            f.write('    echo Sleeping for 30m\n')
+            f.write('    echo -ne "Date: $(date), Jerk Search Progress for wmax %d: [${bar}] $percentage%% \\r" >> $progress_file\n' % jerk_search_wmax)
+            f.write('    echo "Date: $(date), Jerk Search Progress for wmax %d: [${bar}] $percentage%%" >> $progress_file\n' % jerk_search_wmax)
+            f.write('    echo -ne "Date: $(date), Jerk Search Progress for wmax %d: [${bar}] $percentage%% \\r"\n' % jerk_search_wmax)
             f.write('    sleep 30m\n')
             f.write('  else\n')
-            f.write('    echo "Jerk Search completed."\n')
-            f.write('    echo "Jerk Search completed." >> $progress_file\n')
+            f.write('    echo "Jerk Search for wmax %d completed."\n' % jerk_search_wmax)
+            f.write('    echo "Jerk Search for wmax %d completed." >> $progress_file\n' % jerk_search_wmax)
             f.write('    break\n')
             f.write('  fi\n')
             f.write('done\n')
@@ -703,8 +719,7 @@ def main():
         sift_and_create_fold_script = '''sift_and_create_fold_command_file=$(sbatch --parsable --job-name=sift_and_create_fold_command_file --output=$logs/%s_sift_and_create_fold_command_file_%s_%s.out --error=$logs/%s_sift_and_create_fold_command_file_%s_%s.err -p %s --export=ALL --cpus-per-task=%d --time=%s --mem=%s --wrap="%s/SIFT_CREATE_FOLD_SCRIPT_AND_COPY_BACK.sh %s %s %s %s %s %s %s")''' %(cluster, epoch, beam, cluster, epoch, beam, sift_partition, sift_cpus, sift_wall_clock, sift_ram, code_directory, singularity_image, mount_path, code_directory, tmp_dir_sifting_and_fold_script_creation, output_dir, full_data_path, os.path.abspath(pulsarminer_config_file))
 
         f.write(sift_and_create_fold_script + '\n' + '\n')
-        # f.write('slurmids="$slurmids:$sift_script"' + '\n')
-        # f.write('check_job_submission_limit' + '\n')
+      
                     
    
 
