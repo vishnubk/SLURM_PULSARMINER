@@ -22,4 +22,4 @@ SEARCH_PROGRESS/
 NGC441/
 test.config
 NGC6441.config
-
+relaunch_slurm_jobs*.sh
