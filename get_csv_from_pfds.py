@@ -84,8 +84,8 @@ if __name__ == '__main__':
         output_meta_dir = 'CANDIDATE_VIEWER/' + cluster + '/' + args.utc.split('T')[0].replace('-', '') + '/'  + 'ML_SELECTED/' + 'metafiles' + '/' 
 
     else:
-        output_dir = 'CANDIDATE_VIEWER/' + cluster + '/' + args.utc.split('T')[0].replace('-', '') + '/' + 'plots'
-        output_meta_dir = 'CANDIDATE_VIEWER/' + cluster + '/' + args.utc.split('T')[0].replace('-', '') + '/' + 'metafiles'
+        output_dir = 'CANDIDATE_VIEWER/' + cluster + '/' + args.utc.split('T')[0].replace('-', '') + '/' + 'EVERYTHING/' + 'plots'
+        output_meta_dir = 'CANDIDATE_VIEWER/' + cluster + '/' + args.utc.split('T')[0].replace('-', '') + '/' + 'EVERYTHING/' + 'metafiles'
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
@@ -98,6 +98,7 @@ if __name__ == '__main__':
 
     pics_recall = pd.read_csv(candidate_dir + '/' + 'pics_MeerKAT_L_SBAND_COMBINED_Best_Recall.csv')
     pics_fscore = pd.read_csv(candidate_dir + '/' + 'pics_PALFA_MeerKAT_L_SBAND_Best_Fscore.csv')
+   
     if args.verbose:
         print(args.pfds)
     print("{} pfd files for beam {}".format(len(args.pfds), args.beam_name))
@@ -110,8 +111,10 @@ if __name__ == '__main__':
             out.write(header + "\n")
 
         for f in args.pfds:
-            pics_m_LS_recall = convert_to_float(pics_recall[pics_recall['filename'] == os.path.basename(f)]['MeerKAT_L_SBAND_COMBINED_Best_Recall'].values[0])
-            pics_pm_LS_fscore = convert_to_float(pics_fscore[pics_fscore['filename'] == os.path.basename(f)]['PALFA_MeerKAT_L_SBAND_Best_Fscore'].values[0])
+            #pics_m_LS_recall = convert_to_float(pics_recall[pics_recall['filename'] == os.path.basename(f)]['MeerKAT_L_SBAND_COMBINED_Best_Recall'].values[0])
+            pics_m_LS_recall = pics_recall[pics_recall['filename'] == os.path.basename(f)]['MeerKAT_L_SBAND_COMBINED_Best_Recall'].values[0]
+            pics_pm_LS_fscore = pics_fscore[pics_fscore['filename'] == os.path.basename(f)]['PALFA_MeerKAT_L_SBAND_Best_Fscore'].values[0]
+            #pics_pm_LS_fscore = convert_to_float(pics_fscore[pics_fscore['filename'] == os.path.basename(f)]['PALFA_MeerKAT_L_SBAND_Best_Fscore'].values[0])
             if args.copy_ml_cands_only:
                 if pics_m_LS_recall < 0.1 and pics_pm_LS_fscore < 0.1:
                     continue
