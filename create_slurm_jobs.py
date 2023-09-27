@@ -308,9 +308,14 @@ def main():
     pm_config.file_common_birdies = os.path.join(dir_birdies, "common_birdies.txt")
     survey_config = pm_config.dict_survey_configuration
     LOG_dir = os.path.join(cluster, epoch, beam, "LOG")
+    slurm_log_dir = os.path.join(cluster, epoch, beam, "00_SLURM_JOB_LOGS")
     
     if not os.path.exists(LOG_dir): 
          os.mkdir(LOG_dir)
+
+    if not os.path.exists(slurm_log_dir): 
+         os.mkdir(slurm_log_dir)
+
     #Rfifind
     rfifind_mask = call_pulsarminer_rfifind(cluster, epoch, beam, pm_config, LOG_dir, verbosity_level)
     rfifind_mask = os.path.abspath(rfifind_mask)
@@ -390,12 +395,12 @@ def main():
     # Create a slurm job file for dedispersion
     with open('slurm_jobs_%s.sh' %observation_name_no_extension, 'w') as f:
         f.write('#!/bin/bash' + '\n')
-        f.write("logs='slurm_job_logs/'" + '\n')
+        f.write("logs='%s'" %(slurm_log_dir) + '\n')
         f.write('mkdir -p $logs' + '\n')
         #f.write('epoch=%s'%epoch + '\n')
         f.write('data_path=%s'%full_data_path + '\n')
         f.write('\n')
-        slurmids=""
+        f.write('slurmids=""')
         f.write('\n')
         for i in range(loop_trials):
             batch_number = i + 1
@@ -645,15 +650,34 @@ def main():
         expected_accel_search_files_per_category = int(accel_search_beam_count/len(list_accel_search_zmax))
         expected_jerk_search_files = jerk_search_beam_count
 
+
         f.write('mkdir -p SEARCH_PROGRESS\n')
+        # Initialize a list to hold all the condition variables for search progress and job status
+        condition_variables = []
+        if expected_accel_search_files_per_category > 0:
+            for zmax in list_accel_search_zmax:
+                f.write('search_progress_accel_search_zmax_%d=false\n' %int(zmax))
+                condition_variables.append('search_progress_accel_search_zmax_%d' % int(zmax))
+        
+
+        if expected_jerk_search_files > 0:
+            f.write('search_progress_jerk_search_zmax_%d_wmax_%d=false\n' %(jerk_search_zmax, jerk_search_wmax))
+            condition_variables.append('search_progress_jerk_search_zmax_%d_wmax_%d' % (jerk_search_zmax, jerk_search_wmax))
+
+
+
+        # Progress checking function
+        f.write("check_search_progress() {\n")
+
         f.write('progress_file="SEARCH_PROGRESS/search_progress_%s_%s_%s.txt"\n' %(cluster, epoch, beam))
+        
 
         if expected_accel_search_files_per_category > 0:
             f.write('###################################### Loop to check accel-search progress ##################################################################' + '\n')
             
             for zmax in list_accel_search_zmax:
                 f.write('  # Count the number of files matching *_ACCEL_%d.txtcand in the directory\n' % int(zmax))
-                f.write('while true; do\n')
+                #f.write('while true; do\n')
                 cmds = "found_files=$(find %s -name '*_ACCEL_%d.txtcand' | wc -l)" % (root_dir_check_progress, int(zmax))
                 f.write('  ' + cmds + '\n')
 
@@ -674,20 +698,19 @@ def main():
                 f.write('  echo "Date: $(date), Search Progress for zmax %d: [${bar}] $percentage%%" >> $progress_file\n' % zmax)
 
                 # Check the condition
-                f.write('  if [ $found_files -lt %d ]; then\n' % expected_accel_search_files_per_category)
-                f.write('    sleep 30m\n')
-                f.write('  else\n')
+                f.write('  if [ $found_files -ge %d ]; then\n' % expected_accel_search_files_per_category)
                 f.write('    echo -e "\\nSearch Category zmax: %d completed." \n' % int(zmax))
                 f.write('    echo "Search Category zmax: %d completed. Date: $(date)" >> $progress_file\n' % int(zmax))
-                f.write('    break\n')
+                f.write('    search_progress_accel_search_zmax_%d=true\n' %int(zmax))
+                #f.write('    break\n')
                 f.write('  fi\n')
-                f.write('done\n')
+                #f.write('done\n')
 
         
         if expected_jerk_search_files > 0:
             f.write('###################################### Loop to check jerk-search progress ##################################################################' + '\n')
             f.write('  # Count the number of files matching *ACCEL_%d_JERK_%d.txtcand in the directory\n' % (jerk_search_zmax, jerk_search_wmax))
-            f.write('while true; do\n')
+            #f.write('while true; do\n')
             cmds = "found_files=$(find %s -name '*ACCEL_%d_JERK_%d.txtcand' | wc -l)" % (root_dir_check_progress, jerk_search_zmax, jerk_search_wmax)
             f.write('  ' + cmds + '\n')
 
@@ -696,19 +719,182 @@ def main():
             f.write('  bar=$(printf "%-${num_hashes}s" "#")\n')
             f.write('  bar=${bar// /#}\n')
 
-            f.write('  # If the number of found files is not what is expected, sleep and check again\n')
-            f.write('  if [ $found_files -lt %d ]; then\n' % expected_jerk_search_files)
+            f.write('  if [ $found_files -ge %d ]; then\n' % expected_jerk_search_files)
             f.write('    echo -ne "Date: $(date), Jerk Search Progress for wmax %d: [${bar}] $percentage%% \\r" >> $progress_file\n' % jerk_search_wmax)
             f.write('    echo "Date: $(date), Jerk Search Progress for wmax %d: [${bar}] $percentage%%" >> $progress_file\n' % jerk_search_wmax)
             f.write('    echo -ne "Date: $(date), Jerk Search Progress for wmax %d: [${bar}] $percentage%% \\r"\n' % jerk_search_wmax)
-            f.write('    sleep 30m\n')
-            f.write('  else\n')
             f.write('    echo "Jerk Search for wmax %d completed."\n' % jerk_search_wmax)
             f.write('    echo "Jerk Search for wmax %d completed." >> $progress_file\n' % jerk_search_wmax)
-            f.write('    break\n')
+            f.write('    search_progress_jerk_search_zmax_%d_wmax_%d=true\n' %(jerk_search_zmax, jerk_search_wmax))
+            #f.write('    break\n')
             f.write('  fi\n')
-            f.write('done\n')
-       
+            #f.write('done\n')
+
+        f.write("}\n")
+        f.write("\n")
+        #Close Progress checking function
+
+        # Write the monitoring script logic
+        f.write("# Initialize variables\n")
+        f.write("IFS=':' read -r -a array <<< \"$slurmids\"\n")
+        f.write("declare -A job_map\n")
+        f.write("declare -A watching\n")
+        f.write("declare -A retry_count\n")
+        f.write("max_retry_attempts=3\n")
+        f.write("# Initialize job_map and watching with original job IDs\n")
+        f.write("for jobid in \"${array[@]}\"; do\n")
+        f.write("  if [ -n \"$jobid\" ]; then\n")
+        f.write("    job_map[$jobid]=$jobid\n")
+        f.write("    watching[$jobid]=false\n")
+        f.write("    retry_count[$jobid]=0\n")
+        f.write("  fi\n")
+        f.write("done\n")
+        f.write("\n")
+        f.write('slurm_job_monitoring_status=false\n')
+        condition_variables.append('slurm_job_monitoring_status')
+
+        
+
+        # Job status checking function
+        f.write("check_job_statuses() {\n")
+
+        # Initialize variables
+        f.write("  start_time=$(date +%s)\n")
+        f.write("  all_jobs_completed=true\n")
+        f.write("  job_running=false\n")
+
+        # Main loop to check job statuses
+        f.write("  for original_jobid in \"${!job_map[@]}\"; do\n")
+        f.write("    current_time=$(date +%s)\n")
+        f.write("    elapsed_time=$((current_time - start_time))\n")
+        f.write("    if [ $elapsed_time -ge 1200 ]; then\n")
+        f.write("      return\n")
+        f.write("    fi\n")
+        f.write("    if [ \"${watching[$original_jobid]}\" = \"true\" ]; then\n")
+        f.write("      continue\n")
+        f.write("    fi\n")
+        #f.write("    sleep 4\n")
+        f.write("    current_jobid=${job_map[$original_jobid]}\n")
+        f.write("    job_state=$(sacct -j \"$current_jobid\" --format=State --noheader | head -1 | xargs)\n")
+
+        # Check if the job state is empty (no sacct history)
+        f.write("    if [ -z \"$job_state\" ]; then\n")
+        f.write("      echo \"No sacct history found for JOB ID: $current_jobid (originally $original_jobid). Assuming completion.\"\n")
+        f.write("      unset job_map[$original_jobid]\n")
+        f.write("      continue\n")
+        f.write("    fi\n")
+
+        # If job is RUNNING
+        f.write("    if [[ \"$job_state\" == \"RUNNING\" ]]; then\n")
+        f.write("      all_jobs_completed=false\n")
+        f.write("      job_running=true\n")
+        f.write("      echo \"Job state of JOB ID: $current_jobid (originally $original_jobid) is $job_state.\"\n")
+        f.write("    elif [[ \"$job_state\" =~ \"FAILED\" || \"$job_state\" =~ \"TIMEOUT\" || \"$job_state\" =~ \"CANCELLED\" ]]; then\n")
+        f.write("      all_jobs_completed=false\n")
+        f.write("      retry_count[$original_jobid]=$((retry_count[$original_jobid] + 1))\n")
+        f.write("      if [[ ${retry_count[$original_jobid]} -le $max_retry_attempts ]]; then\n")
+        f.write("        watching[$original_jobid]=true\n")
+        f.write("        new_jobid=$(relaunch_job $original_jobid ${retry_count[$original_jobid]})\n")
+        f.write("        if [ -n \"$new_jobid\" ]; then\n")
+        f.write("          job_map[$original_jobid]=$new_jobid\n")
+        f.write("        fi\n")
+        f.write("      else\n")
+        f.write("          echo \"Max retry attempts reached for $original_jobid during watching. Not retrying.\"\n")
+        f.write("          unset job_map[$original_jobid]\n")
+        f.write("      fi\n")
+        f.write("    elif [[ \"$job_state\" == \"COMPLETED\" ]]; then\n")
+        f.write("          unset job_map[$original_jobid]\n")
+        f.write("    else\n")
+        f.write("          all_jobs_completed=false\n")
+        f.write("    fi\n")
+        f.write("  done\n")
+
+        # Check the status of "watching" jobs
+        f.write("  for original_jobid in \"${!watching[@]}\"; do\n")
+        f.write("    if [ \"${watching[$original_jobid]}\" = \"true\" ]; then\n")
+        #f.write("      sleep 4\n")
+        f.write("      current_jobid=${job_map[$original_jobid]}\n")
+        f.write("      job_state=$(sacct -j \"$current_jobid\" --format=State --noheader | head -1 | xargs)\n")
+        f.write("      if [ -z \"$job_state\" ]; then\n")
+        f.write("        echo \"No sacct history found for JOB ID: $current_jobid (originally $original_jobid). Assuming completion.\"\n")
+        f.write("        unset job_map[$original_jobid]\n")
+        f.write("        continue\n")
+        f.write("      fi\n")
+        f.write("      if [[ \"$job_state\" == \"COMPLETED\" ]]; then\n")
+        f.write("        watching[$original_jobid]=false\n")
+        f.write("        unset job_map[$original_jobid]\n")
+        f.write("      elif [[ \"$job_state\" =~ \"FAILED\" || \"$job_state\" =~ \"TIMEOUT\" || \"$job_state\" =~ \"CANCELLED\" ]]; then\n")
+        f.write("        all_jobs_completed=false\n")
+        f.write("        retry_count[$original_jobid]=$((retry_count[$original_jobid] + 1))\n")
+        f.write("        if [[ ${retry_count[$original_jobid]} -le $max_retry_attempts ]]; then\n")
+        f.write("          new_jobid=$(relaunch_job $original_jobid ${retry_count[$original_jobid]})\n")
+        f.write("          if [ -n \"$new_jobid\" ]; then\n")
+        f.write("            job_map[$original_jobid]=$new_jobid\n")
+        f.write("          fi\n")
+        f.write("        else\n")
+        f.write("          echo \"Max retry attempts reached for $original_jobid during watching. Not retrying.\"\n")
+        f.write("          watching[$original_jobid]=false\n")
+        f.write("          unset job_map[$original_jobid]\n")
+        f.write("        fi\n")
+        f.write("      else\n")
+        f.write("        all_jobs_completed=false\n")
+        f.write("        sleep 10\n")
+        f.write("      fi\n")
+        f.write("    fi\n")
+        f.write("  done\n")
+
+        # Closing logic
+        f.write("  current_time=$(date +%s)\n")
+        f.write("  elapsed_time=$((current_time - start_time))\n")
+        f.write("  if $all_jobs_completed || [ ${#job_map[@]} -eq 0 ]; then\n")
+        f.write("    slurm_job_monitoring_status=true\n")
+        f.write("  elif [ $elapsed_time -ge 1200 ]; then\n")
+        f.write("    return\n")
+        f.write("  elif $job_running; then\n")
+        f.write("    sleep 10\n")
+        f.write("  fi\n")
+
+        f.write("}\n")  # Close the function
+
+
+        
+        # Main loop
+        f.write("while true; do\n")
+
+        # Only run the check_search_progress function if any of its condition variables are false.
+        if condition_variables:
+            f.write("  if [[")
+            for i, var in enumerate(condition_variables[:-1]):
+                f.write(" \"$%s\" = \"false\"" % var)
+                if i < len(condition_variables[:-1]) - 1:
+                    f.write(" ||")
+            f.write(" ]]; then\n")
+            f.write("    check_search_progress\n")
+            f.write("  fi\n")
+
+        f.write("    current_time=$(date +%s)\n")
+        # Only run the check_job_statuses function if slurm_job_monitoring_status is false.
+        f.write("  if [ \"$slurm_job_monitoring_status\" = \"false\" ]; then\n")
+        f.write("    check_job_statuses\n")
+        f.write("  fi\n")
+
+        # Check if all conditions are met to exit the loop.
+        f.write("  if [[")
+        for i, var in enumerate(condition_variables[:-1]):
+            f.write(" \"$%s\" = \"true\" &&" % var)
+        f.write(" \"$%s\" = \"true\" ]]; then\n" % condition_variables[-1])
+        f.write("    break\n")
+        f.write("  fi\n")
+
+        f.write("  sleep 5m  # Sleep for 5 minutes before checking again\n")
+        f.write("done\n")
+
+
+        # f.write("while true; do\n")
+        # f.write("  check_search_progress\n")
+        # f.write("  check_job_statuses\n")
+        # f.write("  sleep 10m  # Sleep for 10 minutes before checking again\n")
+        # f.write("done\n")
 
         #Start the slurm sifting job. This will run after all the dedispersion and periodicity search jobs have finished
         f.write('###################################### Running Sifting on Cluster %s, Epoch %s, Beam %s using %d CPUs   ##################################################################' %(cluster, epoch, beam, sift_cpus) + '\n')

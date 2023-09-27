@@ -1,0 +1,2 @@
+test
+./test.sh: line 5: non_existent_command: command not found

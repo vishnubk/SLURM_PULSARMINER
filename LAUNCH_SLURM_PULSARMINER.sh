@@ -23,8 +23,8 @@ maxjobs_raw=$(sacctmgr list associations format=user,maxsubmitjobs -n | grep $US
 maxjobs=$(( maxjobs_raw - 5 ))
 
 # If maxjobs is greater than 20k, fix it at 20k
-if [ "$maxjobs" -gt 20000 ]; then
-    maxjobs=20000
+if [ "$maxjobs" -gt 2000 ]; then
+    maxjobs=2000
 fi
 
 slurm_user_requested_jobs=$maxjobs
@@ -191,6 +191,44 @@ check_job_submission_limit () {
     done
 }
 
+#Relaunch function
+relaunch_job() {
+    local jobid=$1
+    local attempt_number=$2
+
+    # Getting the stderr file path using scontrol
+    local stderr_path=$(scontrol show job $jobid -o | grep -oP 'StdErr=\K\S+')
+    
+    # Constructing the name of the shell script file containing sbatch commands
+    local shell_script_file="slurm_jobs_${CLUSTER}_${EPOCH}_${BEAM}.sh"
+    
+    # Getting the full sbatch command corresponding to the failed job
+    local sbatch_command=$(grep $(basename "$stderr_path") "$shell_script_file")
+    
+    # Removing any dependency strings from the sbatch command
+    sbatch_command=$(echo "$sbatch_command" | sed -e 's/--dependency=[^ ]* //')
+    
+    # Adding "relaunch_" prefix to the job name and including the attempt number
+    sbatch_command=$(echo "$sbatch_command" | sed -e "s/--job-name=\([^ ]*\)/--job-name=relaunch_\1_$attempt_number/")
+    
+    # Modifying the output and error file paths to include the relaunch attempt number
+    sbatch_command=$(echo "$sbatch_command" | sed -e "s/\(_zmax_0\.out\)/_relaunch_attempt_${attempt_number}\1/" -e "s/\(_zmax_0\.err\)/_relaunch${attempt_number}\1/")
+    # Find the starting index of the word "sbatch"
+    start_index=$(echo $sbatch_command | awk '{ print index($0, "sbatch") }')
+    # Remove everything until the word "sbatch" starts
+    trimmed_sbatch_command=${sbatch_command:start_index-1}
+
+    # Remove the closing bracket at the end
+    if [[ "$trimmed_sbatch_command" == *")" ]]; then
+        trimmed_sbatch_command=${trimmed_sbatch_command:0:-1}
+    fi
+
+    # Executing the modified sbatch command to relaunch the job
+    local new_jobid=$(eval "$trimmed_sbatch_command")
+    # Returning the new job ID
+    echo $new_jobid
+}
+
 
 singularity exec -H $HOME:/home1 -B $mount_path:$mount_path $singularity_image_path python ${code_directory}/create_slurm_jobs.py -s ${code_directory}/$slurm_config_file -p ${code_directory}/$pm_config_file -o $obs_file 
 
@@ -215,7 +253,10 @@ while true; do
                 start=$((i + 1))
                 end=$((i + batch_size))
                 sed -n "${start},${end}p" $fold_script_filename > ${CLUSTER}_${EPOCH}_${BEAM}_fold_commands_batch_${fold_batch_number}.txt
+                
+                #echo "sbatch --parsable --job-name=$fold_job_name --output=$logs/${CLUSTER}_fold_${EPOCH}_${BEAM}_batch_${fold_batch_number}.out --error=$logs/${CLUSTER}_fold_${EPOCH}_${BEAM}_batch_${fold_batch_number}.err -p ${fold_partition} --export=ALL --cpus-per-task=$batch_size --time=$fold_wall_clock --mem=$fold_ram_per_job ${code_directory}/FOLD_AND_COPY_BACK.sh ${singularity_image_path} ${mount_path} ${code_directory} ${tmp_working_dir} ${code_directory}/${CLUSTER}/${EPOCH}/${BEAM} ${obs_file} ${CLUSTER}_${EPOCH}_${BEAM}_fold_commands_batch_${fold_batch_number}.txt $batch_size $pm_config_file"
 
+                
                 job_id=$(sbatch --parsable --job-name=$fold_job_name --output=$logs/${CLUSTER}_fold_${EPOCH}_${BEAM}_batch_${fold_batch_number}.out --error=$logs/${CLUSTER}_fold_${EPOCH}_${BEAM}_batch_${fold_batch_number}.err -p ${fold_partition} --export=ALL --cpus-per-task=$batch_size --time=$fold_wall_clock --mem=$fold_ram_per_job ${code_directory}/FOLD_AND_COPY_BACK.sh ${singularity_image_path} ${mount_path} ${code_directory} ${tmp_working_dir} ${code_directory}/${CLUSTER}/${EPOCH}/${BEAM} ${obs_file} ${CLUSTER}_${EPOCH}_${BEAM}_fold_commands_batch_${fold_batch_number}.txt $batch_size $pm_config_file)
                 job_ids+=("$job_id")
 

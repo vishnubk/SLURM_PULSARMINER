@@ -16,18 +16,22 @@ gpu_flag=${13}
 
 inf_file=${dat_file::-4}.inf
 
-
 # Check if the output file exists
 base_name=$(basename "$dat_file")
 file_string=$(echo "$base_name" | awk -F'_' '{print $1"_"$2"_"$3}')_${segment}_${chunk}
 dm_value="DM${base_name##*DM}"; dm_value=${dm_value%.dat}
+output_search_file=${output_dir}/${file_string}_${dm_value}_ACCEL_${zmax}.txtcand
 
-output_search_file=${output_dir}/${file_string}_${dm_value}_ACCEL_${zmax}
-echo $output_search_file
 if [ -s "$output_search_file" ]; then
-    echo "Output File: $(basename $output_search_file) exists, exiting."
-    exit 0
+    echo "Output File: $(basename $output_search_file) exists."
+    if (( $(wc -l < "$output_search_file") > 0 )); then
+        echo "Output File: $(basename $output_search_file) has more than zero lines, exiting with status 0."
+        exit 0
+    else
+        echo "Output File: $(basename $output_search_file) is not empty, not exiting."
+    fi
 fi
+
 
 #Cleaning up any prior runs
 rm -rf $working_dir
@@ -38,7 +42,7 @@ mkdir -p $output_dir
 ## Copy the *.dat and *.inf file to the working directory 
 rsync -Pav $dat_file $working_dir 
 rsync -Pav $inf_file $working_dir
-#
+
 basename_inf=$(basename "$inf_file")
 
 
@@ -80,10 +84,89 @@ else
     fi
 
 fi
-## Copy Results back
 
-rsync -Pav $working_dir/*ACCEL*  $output_dir
-rsync -Pav $working_dir/*.inf  $output_dir
+#rsync -Pav $working_dir/*ACCEL*  $output_dir
+#rsync -Pav $working_dir/*.inf  $output_dir
 
-#Clean Up
+if [[ $wmax -eq 0 ]]; then
+    base_file1="${file_string}_${dm_value}_ACCEL_${zmax}.txtcand"
+    base_file2="${file_string}_${dm_value}.inf"
+    base_file3="${file_string}_${dm_value}_ACCEL_${zmax}"
+    base_file4="${file_string}_${dm_value}_ACCEL_${zmax}.cand"
+else
+    base_file1="${file_string}_${dm_value}_ACCEL_${zmax}_JERK_${wmax}.txtcand"
+    base_file2="${file_string}_${dm_value}.inf"
+    base_file3="${file_string}_${dm_value}_ACCEL_${zmax}_JERK_${wmax}"
+    base_file4="${file_string}_${dm_value}_ACCEL_${zmax}_JERK_${wmax}.cand"
+fi
+
+#Group 1 is for the case when accel search finds no candidates and only outputs an empty .txtcand file
+
+expected_files_group1=("$working_dir/$base_file1" "$working_dir/$base_file2")
+expected_files_group2=("$working_dir/$base_file3" "$working_dir/$base_file4")
+
+# Rsync files from group1
+for file in "${expected_files_group1[@]}"; do
+    echo rsync -Pav "$file" "$output_dir/"
+    rsync -Pav "$file" "$output_dir/"
+    status=$?
+    if [ $status -ne 0 ]; then
+        echo "Error: rsync of $(basename $file) failed" >&2
+        exit 1
+    fi
+done
+
+# Check the .txtcand file and rsync files from group2 if necessary
+txtcand_file="$working_dir/$base_file1"
+if (( $(wc -l < "$txtcand_file") > 0 )); then
+    for file in "${expected_files_group2[@]}"; do
+        echo rsync -Pav "$file" "$output_dir/"
+        rsync -Pav "$file" "$output_dir/"
+        status=$?
+        if [ $status -ne 0 ]; then
+            echo "Error: rsync of $(basename $file) failed" >&2
+            exit 1
+        fi
+    done
+fi
+
+# Clean Up
 rm -rf $working_dir
+
+expected_files_group1=("$output_dir/$base_file1" "$output_dir/$base_file2")
+expected_files_group2=("$output_dir/$base_file3" "$output_dir/$base_file4")
+
+
+# Check if the expected output files exist 
+all_files_exist_in_group1=true
+for file in "${expected_files_group1[@]}"; do
+    if [[ ! -e $file ]]; then
+        echo "Error: Output file $file does not exist" >&2
+        all_files_exist_in_group1=false
+        break
+    else
+        echo "Output File: $(basename $file) exists."
+    fi
+done
+
+if [[ $all_files_exist_in_group1 == true ]]; then
+    txtcand_file="$output_dir/${file_string}_${dm_value}_ACCEL_${zmax}.txtcand"
+    if (( $(wc -l < "$txtcand_file") > 0 )); then
+        echo "Output File: $(basename $txtcand_file) exists and is not empty, so checking for the search candidates file."
+        for file in "${expected_files_group2[@]}"; do
+            if [[ ! -e $file ]]; then
+                echo "Error: Expected output file $file from group 2 does not exist" >&2
+                exit 1
+            else
+                echo "Output File: $(basename $file) exists."
+            fi
+        done
+    fi
+else
+    exit 1
+fi
+
+
+
+
+
