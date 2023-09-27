@@ -308,9 +308,14 @@ def main():
     pm_config.file_common_birdies = os.path.join(dir_birdies, "common_birdies.txt")
     survey_config = pm_config.dict_survey_configuration
     LOG_dir = os.path.join(cluster, epoch, beam, "LOG")
+    slurm_log_dir = os.path.join(cluster, epoch, beam, "00_SLURM_JOB_LOGS")
     
     if not os.path.exists(LOG_dir): 
          os.mkdir(LOG_dir)
+    
+    if not os.path.exists(slurm_log_dir): 
+         os.mkdir(slurm_log_dir)
+
     #Rfifind
     rfifind_mask = call_pulsarminer_rfifind(cluster, epoch, beam, pm_config, LOG_dir, verbosity_level)
     rfifind_mask = os.path.abspath(rfifind_mask)
@@ -390,7 +395,8 @@ def main():
     # Create a slurm job file for dedispersion
     with open('slurm_jobs_%s.sh' %observation_name_no_extension, 'w') as f:
         f.write('#!/bin/bash' + '\n')
-        f.write("logs='slurm_job_logs/'" + '\n')
+        f.write("logs='%s'" %(slurm_log_dir) + '\n')
+        #f.write("logs='slurm_job_logs/'" + '\n')
         f.write('mkdir -p $logs' + '\n')
         #f.write('epoch=%s'%epoch + '\n')
         f.write('data_path=%s'%full_data_path + '\n')
