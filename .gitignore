@@ -24,3 +24,6 @@ test.config
 NGC6441.config
 relaunch_slurm_jobs*.sh
 search_completed*
+VIVEK_LOGS/
+PREPFOLD_TEST/
+*.log
