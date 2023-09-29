@@ -45,13 +45,13 @@ def run_pics_sequential(filenames, pics_model, model_name):
     return df
 
 
-def main(input_dir, pics_model_dir, output_dir):
+def main(input_dir, pics_model_dir):
     os.chdir(input_dir)
     filenames = glob.glob('*.pfd') + glob.glob('*.ar') + glob.glob('*.ar2')
     master_df = pd.DataFrame({'filename': filenames})
-    models = glob.glob(pics_model_dir + '*.pkl')
+    models = glob.glob(pics_model_dir + '/' + '*.pkl')
+   
 
-    
     
     for pics_model in models:
        
@@ -67,61 +67,18 @@ def main(input_dir, pics_model_dir, output_dir):
     # Save the master DataFrame
     master_df.to_csv('pics_scores.csv', index=False)
 
-    if output_dir:
-         # Copy high scoring files to a new directory
-        high_score = df.loc[df[model_name] > 0.5]
-        low_score = df.loc[(df[model_name] <= 0.5) & (df[model_name] > 0.1)]
-        rest = df.loc[(df[model_name] <= 0.1)]
-        high_scoring_output_dir = os.path.join(output_dir, 'ABOVE_50')
-        low_scoring_output_dir = os.path.join(output_dir, '10_50')
-        rest_output_dir = os.path.join(output_dir, 'REST')
-        mkdir_p(high_scoring_output_dir)
-        mkdir_p(low_scoring_output_dir)
-        mkdir_p(rest_output_dir)
-
-        for index, row in high_score.iterrows():
-            png_file = row['filename'].replace('.pfd', '.pfd.png')
-            if os.path.exists(png_file):
-                cmds = 'cp %s %s' % (png_file, high_scoring_output_dir)
-            else:
-                cmds = 'cp %s %s' % (row['filename'], high_scoring_output_dir)
-            subprocess.check_output(cmds, shell=True)
-        
-        for index, row in low_score.iterrows():
-            png_file = row['filename'].replace('.pfd', '.pfd.png')
-            if os.path.exists(png_file):
-                cmds = 'cp %s %s' % (png_file, low_scoring_output_dir)
-            else:
-                cmds = 'cp %s %s' % (row['filename'], low_scoring_output_dir)
-            subprocess.check_output(cmds, shell=True)
-
-        for index, row in rest.iterrows():
-            png_file = row['filename'].replace('.pfd', '.pfd.png')
-            if os.path.exists(png_file):
-                cmds = 'cp %s %s' % (png_file, rest_output_dir)
-            else:
-                cmds = 'cp %s %s' % (row['filename'], rest_output_dir)
-            #subprocess.check_output(cmds, shell=True)
-
+    
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Process a directory of files and output to a CSV file.')
     parser.add_argument('-i', '--input_dir', required=True, help='Input dir of files to process')
     parser.add_argument('-m', '--model_dir', required=True, help='PICS model directory used to score')
-    parser.add_argument('-o', '--output_dir',  help='Optional: Copy high scoring files to a new directory', default=None)
-
-
-
 
 
     args = parser.parse_args()
     input_dir = args.input_dir
     pics_model_dir = args.model_dir
-    output_dir = args.output_dir
-    # if args.output_dir == 'None':
-    #     output_dir = input_dir
-    # else:
-    #     output_dir = args.output_dir
     
-    main(input_dir, pics_model_dir, output_dir)
+    
+    main(input_dir, pics_model_dir)

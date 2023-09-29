@@ -38,12 +38,8 @@ def get_args():
     arg_parser.add_argument("-utc", dest="utc",
                             help="UTC of observation in ISOT format - default=start MJD")      
     arg_parser.add_argument("-filterbank_path", dest="filterbank_path",default=None,help="Path to filterbank file")
-    arg_parser.add_argument("-code_d", dest="code_dir",default=None,help="Code dir")
-
     arg_parser.add_argument("-verbose", dest="verbose",action="store_true",help="Verbose output")
-    #arg_parser.add_argument('-copy_ml_cands_only', action='store_true', default=False, help='Copy high scoring ML candidates only')
-    arg_parser.add_argument('-global_beams', action='store_true', default=False, help='Create global beam candidates csv file')
-
+    arg_parser.add_argument('-copy_ml_cands_only', action='store_true', default=False, help='Copy high scoring ML candidates only')
 
                                                      
     return arg_parser.parse_args()
@@ -94,35 +90,44 @@ if __name__ == '__main__':
     pics_scores = pd.read_csv(candidate_dir + '/' + 'pics_scores.csv')
     pfd_files = glob.glob(candidate_dir + '/' + '*.pfd')
     current_directory = os.getcwd()
-    code_dir = args.code_dir
-    output_meta_dir = code_dir + '/' + cluster + '/' + epoch + '/' 
   
     #search_dir = args.search_files
    
     
    
-    #output_meta_dir =  current_directory + '/' + 'CANDIDATE_VIEWER/' + cluster + '/' + epoch + '/'  + 'ML_SELECTED/' + 'metafiles' + '/' 
-    candidates_csv_output = candidate_dir + '/' + 'candidates.csv'
+    if args.copy_ml_cands_only:
+        output_dir = current_directory + '/' + 'CANDIDATE_VIEWER/' + cluster + '/' + epoch + '/' + 'ML_SELECTED/' + 'plots' + '/' 
+        output_meta_dir =  current_directory + '/' + 'CANDIDATE_VIEWER/' + cluster + '/' + epoch + '/'  + 'ML_SELECTED/' + 'metafiles' + '/' 
+        candidates_csv_output = current_directory + '/' + 'CANDIDATE_VIEWER/' + cluster + '/' + epoch + '/' + 'ML_SELECTED/' + args.outfile
 
+    else:
+        output_dir = current_directory + '/' + 'CANDIDATE_VIEWER/' + cluster + '/' + epoch  + '/' + 'EVERYTHING/' + 'plots'
+        output_meta_dir = current_directory + '/' + 'CANDIDATE_VIEWER/' + cluster + '/' + epoch + '/' + 'EVERYTHING/' + 'metafiles'
+        candidates_csv_output = current_directory + '/' + 'CANDIDATE_VIEWER/' + cluster + '/' + epoch + '/' + 'EVERYTHING/' + args.outfile
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    if not os.path.exists(output_meta_dir):
+        os.makedirs(output_meta_dir)
 
     # Copy meta file if not already there
     if not os.path.exists(output_meta_dir + '/' + os.path.basename(args.meta_path)):
         os.system("cp {} {}".format(args.meta_path, output_meta_dir))
      
+    
     if args.verbose:
         print(pfd_files)
     print("{} pfd files for beam {}".format(len(pfd_files), args.beam_name))
     # Check if the file exists
-    #file_exists = os.path.exists(candidates_csv_output)
+    file_exists = os.path.exists(candidates_csv_output)
 
     # Open the file in append mode if it exists, else open in write mode
-    with open(candidates_csv_output, 'w') as out:
-        
-        out.write(header + "\n")
+    with open(candidates_csv_output, 'a' if file_exists else 'w') as out:
+        if not file_exists:
+            out.write(header + "\n")
 
         for index, row in pics_scores.iterrows():
             filename = row['filename']
-            png_filename = os.path.splitext(filename)[0] + '.png'
             pics_palfa = row['clfl2_PALFA']
             pics_trapum_ter5 = row['clfl2_trapum_Ter5']
             pics_m_LS_recall = row['MeerKAT_L_SBAND_COMBINED_Best_Recall']
@@ -164,10 +169,10 @@ if __name__ == '__main__':
               
                 #Read the search file
                 if segment != 'full':
-                    file_location = search_dir + '/' + cluster + '_' + epoch + '_' + beam + '/' + segment + 'm' + '/' + chunk + '/'
+                    file_location = search_dir + cluster + '_' + epoch + '_' + beam + '/' + segment + 'm' + '/' + chunk + '/'
                     
                 else:
-                    file_location = search_dir + '/' + cluster + '_' + epoch + '_' + beam + '/' + segment + '/' + chunk + '/'
+                    file_location = search_dir  + cluster + '_' + epoch + '_' + beam + '/' + segment + '/' + chunk + '/'
 
                 if "ACCEL" in trimmed_filename:
                     search_filename = file_location + cluster + '_' + epoch + '_' + beam + '_' + segment + '_' + chunk + '_' + dm_value + '_ACCEL_' + zmax
@@ -256,7 +261,7 @@ if __name__ == '__main__':
                 out.write("{:f},".format(pics_palfa))
                 out.write("{:f},".format(pics_m_LS_recall))
                 out.write("{:f},".format(pics_pm_LS_fscore))
-                out.write("{},".format(png_filename))
+                out.write("{},".format('plots'  + "/" +  os.path.basename(png_path)))
                 out.write("{},".format(metafile_path))
                 out.write("{},".format(filterbank_path))
                 out.write("{}".format(candidate_tarball_path))
@@ -267,12 +272,9 @@ if __name__ == '__main__':
                 out.flush()
                 
                 # Copy png file to output directory
-                #os.system("cp {} {}".format(png_path, output_dir))
+                os.system("cp {} {}".format(png_path, output_dir))
         print(beam, "Done.")
-        df = pd.read_csv(candidates_csv_output)
-        #Select high scoring ML candidates
-        df1 = df.loc[(df['pics_meerkat_l_sband_combined_best_recall'] > 0.1) | (df['pics_palfa_meerkat_l_sband_best_fscore'] > 0.1)]
-        df1.to_csv(candidate_dir + '/' + 'candidates_ml_selected.csv', index=False)
+
 
 
 
