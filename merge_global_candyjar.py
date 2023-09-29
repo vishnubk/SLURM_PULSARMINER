@@ -22,6 +22,8 @@ for root, dirs, files in os.walk(os.path.join(code_dir, cluster, epoch)):
         if os.path.exists(candidate_file_path):
             # Read the CSV file into a DataFrame
             df = pd.read_csv(candidate_file_path)
+            beam_str = str(df['beam_name'].iloc[0])
+            df['png_path'] = beam_str + '/' + df['png_path'].astype(str)
             # Append it to the master DataFrame
             master_df = pd.concat([master_df, df], ignore_index=True)
 
