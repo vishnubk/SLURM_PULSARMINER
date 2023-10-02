@@ -36,8 +36,13 @@ while true; do
   if [[ $job_count -eq 0 ]]; then
     echo "All jobs are complete. Running final command."
     echo "Running merging candjar files"
-    cd $code_dir/$cluster/$epoch/ 
-    find . -name "candidates.csv" -exec awk 'NR==1{if (!header_printed) {print; header_printed=1}} FNR > 1' {} + > combined_candidates.csv && awk -F, -v OFS=',' 'NR==1{print $0} NR>1{$32 = $3 "/" $32; print $0}' combined_candidates.csv > modified_combined_candidates.csv && mv modified_combined_candidates.csv candidates.csv
+    cd $code_dir/$cluster/$epoch/
+    find . -name "candidates.csv" -exec awk 'NR==1{if (!header_printed) {print; header_printed=1}} FNR > 1' {} + > combined_candidates.csv && awk -F, -v OFS=',' 'NR==1{print $0} NR>1{split($34, a, "/"); gsub(".fil", "", a[length(a)]); $32 = $3 "/05_FOLDING/" a[length(a)] "/" $32; print $0}' combined_candidates.csv > modified_combined_candidates.csv && mv modified_combined_candidates.csv candidates.csv
+
+    find . -name "candidates_ml_selected.csv" -exec awk 'NR==1{if (!header_printed) {print; header_printed=1}} FNR > 1' {} + > combined_candidates_ml_selected.csv && awk -F, -v OFS=',' 'NR==1{print $0} NR>1{split($34, a, "/"); gsub(".fil", "", a[length(a)]); $32 = $3 "/05_FOLDING/" a[length(a)] "/" $32; print $0}' combined_candidates_ml_selected.csv > modified_combined_candidates_ml_selected.csv && mv modified_combined_candidates_ml_selected.csv candidates_ml_selected.csv
+ 
+    rm -rf combined_candidates.csv
+    rm -rf combined_candidates_ml_selected.csv
     # Your final command here
     break
   else

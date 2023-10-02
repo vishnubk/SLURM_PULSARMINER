@@ -62,7 +62,7 @@ if [ ! -f $fold_dir/${cluster}_${epoch}_${beam}/$pics_results ]; then
         
 fi
 
-singularity exec -H $HOME:/home1 -B /hercules/:/hercules/ /u/vishnu/singularity_images/presto_gpu.sif python $code_dir/prepare_cands_for_candyjar.py -pfds $tmp_fold_dir/${cluster}_${epoch}_${beam} -beam_name $beam -pointing $cluster -epoch $epoch -search $tmp_search_dir -meta $meta_file -bary -filterbank_path $filterbank_file -code_d $code_dir -utc utc
+singularity exec -H $HOME:/home1 -B /hercules/:/hercules/ /u/vishnu/singularity_images/presto_gpu.sif python $code_dir/prepare_cands_for_candyjar.py -pfds $tmp_fold_dir/${cluster}_${epoch}_${beam} -beam_name $beam -pointing $cluster -epoch $epoch -search $tmp_search_dir -meta $meta_file -bary -filterbank_path $filterbank_file -code_d $code_dir -utc $utc
 #Copy results back
 rsync -Pav $tmp_fold_dir/${cluster}_${epoch}_${beam}/pics_scores.csv $fold_dir/${cluster}_${epoch}_${beam}/
 rsync -Pav $tmp_fold_dir/${cluster}_${epoch}_${beam}/candidates.csv $fold_dir/${cluster}_${epoch}_${beam}/
