@@ -43,7 +43,6 @@ while true; do
  
     rm -rf combined_candidates.csv
     rm -rf combined_candidates_ml_selected.csv
-    # Your final command here
     break
   else
     echo "Waiting for jobs to complete. Jobs remaining: $job_count."
@@ -51,13 +50,6 @@ while true; do
   fi
 done
 
-#Merge and make global candjar file
-
-#find . -name "candidates.csv" -exec awk 'NR==1{print; next} FNR > 1' {} + > candidates.csv
-
-#sing_command="singularity exec -H $HOME:/home1 -B /hercules:/hercules /u/vishnu/singularity_images/presto_gpu.sif"
-#job_command="python ${code_dir}/MERGE_CANDYJAR_FILES.py $cluster $epoch $code_dir"
-#sbatch --dependency=afterok:$slurmids --job-name=merge --output="$logs/ml_merge_${cluster}_${epoch}.out" --error="$logs/ml_merge_${cluster}_${epoch}.err" -p short.q --time 04:00:00 --export=ALL --cpus-per-task=1 --mem=20GB --wrap="$sing_command $job_command"
 
 
       
