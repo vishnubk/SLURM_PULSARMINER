@@ -6,6 +6,7 @@ beam=$3
 code_dir=$4
 ml_model_dir="$code_dir/ML_MODELS"
 meta_file=$5
+utc="${$meta_file%.*}"
 
 dir="$code_dir/$cluster/$epoch/$beam"
 
@@ -44,6 +45,9 @@ echo "$disk_path_accel_files" | tr ' ' '\n' | while IFS= read -r file; do
 done
 
 
+#mkdir -p $tmpdir/05_FOLDING
+
+
 rsync -Pav --exclude='LOG*' --exclude='*.ps' --exclude='*.png' --exclude='*fold_commands_batch*' --exclude='pm_run_multithread' --exclude='ps_to_png_parallel.sh' $fold_dir $tmpdir
 rsync -Pav $ml_model_dir $tmpdir
 
@@ -58,7 +62,7 @@ if [ ! -f $fold_dir/${cluster}_${epoch}_${beam}/$pics_results ]; then
         
 fi
 
-singularity exec -H $HOME:/home1 -B /hercules/:/hercules/ /u/vishnu/singularity_images/presto_gpu.sif python $code_dir/prepare_cands_for_candyjar.py -pfds $tmp_fold_dir/${cluster}_${epoch}_${beam} -beam_name $beam -pointing $cluster -epoch $epoch -search $tmp_search_dir -meta $meta_file -bary -filterbank_path $filterbank_file -code_d $code_dir
+singularity exec -H $HOME:/home1 -B /hercules/:/hercules/ /u/vishnu/singularity_images/presto_gpu.sif python $code_dir/prepare_cands_for_candyjar.py -pfds $tmp_fold_dir/${cluster}_${epoch}_${beam} -beam_name $beam -pointing $cluster -epoch $epoch -search $tmp_search_dir -meta $meta_file -bary -filterbank_path $filterbank_file -code_d $code_dir -utc utc
 #Copy results back
 rsync -Pav $tmp_fold_dir/${cluster}_${epoch}_${beam}/pics_scores.csv $fold_dir/${cluster}_${epoch}_${beam}/
 rsync -Pav $tmp_fold_dir/${cluster}_${epoch}_${beam}/candidates.csv $fold_dir/${cluster}_${epoch}_${beam}/

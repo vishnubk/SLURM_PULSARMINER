@@ -29,7 +29,7 @@ for root, dirs, files in os.walk(os.path.join(code_dir, cluster, epoch)):
 
 # Save the master DataFrame to a CSV file
 if not master_df.empty:
-    master_df.to_csv(os.path.join(code_dir, epoch, 'candidates.csv'), index=False)
+    master_df.to_csv(os.path.join(code_dir, cluster, epoch, 'candidates.csv'), index=False)
 
 #Select high ML candidates
 highML_df = master_df.loc[(master_df['pics_meerkat_l_sband_combined_best_recall'] > 0.1) | (master_df['pics_palfa_meerkat_l_sband_best_fscore'] > 0.1)]

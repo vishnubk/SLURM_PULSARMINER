@@ -122,7 +122,7 @@ if __name__ == '__main__':
 
         for index, row in pics_scores.iterrows():
             filename = row['filename']
-            png_filename = os.path.splitext(filename)[0] + '.png'
+            png_filename = filename + '.png'
             pics_palfa = row['clfl2_PALFA']
             pics_trapum_ter5 = row['clfl2_trapum_Ter5']
             pics_m_LS_recall = row['MeerKAT_L_SBAND_COMBINED_Best_Recall']
