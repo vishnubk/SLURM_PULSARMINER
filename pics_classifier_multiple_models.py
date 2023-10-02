@@ -56,7 +56,10 @@ def main(input_dir, pics_model_dir):
     for pics_model in models:
        
         model_name = os.path.splitext(os.path.basename(pics_model))[0]
-        df = run_pics_parallel(filenames, pics_model, model_name)
+        try:
+            df = run_pics_parallel(filenames, pics_model, model_name)
+        except Exception as e:
+            df = run_pics_sequential(filenames, pics_model, model_name)
         
         # Sort individual model DataFrame
         df = df.sort_values(by=[model_name], ascending=False)
