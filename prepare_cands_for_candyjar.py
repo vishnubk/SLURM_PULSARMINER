@@ -85,7 +85,7 @@ def p_to_f(p, pd, pdd=None):
         return [f, fd, fdd]
 
 if __name__ == '__main__':
-    header = "pointing_id,beam_id,beam_name,source_name,ra,dec,gl,gb,mjd_start,utc_start,f0_user,f0_opt,f0_opt_err,f1_user,f1_opt,f1_opt_err,acc_user,acc_opt,acc_opt_err,dm_user,dm_opt,dm_opt_err,sn_fft,sn_fold,pepoch,maxdm_ymw16,dist_ymw16,pics_trapum_ter5,pics_palfa,pics_meerkat_l_sband_combined_best_recall,pics_palfa_meerkat_l_sband_best_fscore,png_path,metafile_path,filterbank_path,candidate_tarball_path"
+    header = "pointing_id,beam_id,beam_name,source_name,ra,dec,gl,gb,mjd_start,utc_start,f0_user,f0_opt,f0_opt_err,f1_user,f1_opt,f1_opt_err,acc_user,acc_opt,acc_opt_err,dm_user,dm_opt,dm_opt_err,sn_fft,sn_fold,pepoch,maxdm_ymw16,dist_ymw16,pics_trapum_ter5,pics_palfa,pics_m_LS_recall,pics_pm_LS_fscore,png_path,metafile_path,filterbank_path,candidate_tarball_path"
     args = get_args()
     candidate_dir = args.pfds_dir
     cluster = args.pointing_name
@@ -271,7 +271,7 @@ if __name__ == '__main__':
         print(beam, "Done.")
         df = pd.read_csv(candidates_csv_output)
         #Select high scoring ML candidates
-        df1 = df.loc[(df['pics_meerkat_l_sband_combined_best_recall'] > 0.1) | (df['pics_palfa_meerkat_l_sband_best_fscore'] > 0.1)]
+        df1 = df.loc[(df['pics_m_LS_recall'] > 0.1) | (df['pics_pm_LS_fscore'] > 0.1)]
         df1.to_csv(candidate_dir + '/' + 'candidates_ml_selected.csv', index=False)
 
 
