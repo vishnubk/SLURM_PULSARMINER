@@ -1,5 +1,5 @@
 import numpy as np
-import os, glob, sys
+import os, glob, sys, time
 from pulsar_miner import SurveyConfiguration, sift_candidates, check_if_cand_is_known, Observation, fold_candidate
 import argparse
 
@@ -237,9 +237,12 @@ def create_fold_script_per_observation(pm_config, LOG_dir, dir_dedispersion, wor
                             print
                             print "5) CANDIDATE FOLDING: I will fold only the %d putative new pulsars (%s likely redetections will not be folded)" % (count_candidates_to_fold_new, count_candidates_to_fold_redet)
                     N_cands_to_fold = count_candidates_to_fold_new
-            count_folded_ts = 1 
+            #count_folded_ts = 1 
             if pm_config.flag_fold_timeseries == 1:
-                    
+                    file_script_timeseries_fold_name = "script_fold_timeseries.txt"
+                    file_script_timeseries_fold_abspath = "%s/%s" % (work_dir_candidate_folding, file_script_timeseries_fold_name)
+                    file_script_timeseries_fold = open(file_script_timeseries_fold_abspath, "w")
+                    file_script_timeseries_fold.close()
                     LOG_basename = "05_folding_%s_timeseries" % (obs)
                     if verbosity_level >= 1:
                             print
@@ -252,37 +255,36 @@ def create_fold_script_per_observation(pm_config, LOG_dir, dir_dedispersion, wor
                                     for j in range(len(pm_config.dict_search_structure[obs][seg][ck][key_cands_to_fold])):
                                             candidate = pm_config.dict_search_structure[obs][seg][ck][key_cands_to_fold][j]
                                     
-                                            print "FOLDING CANDIDATE TIMESERIES %d/%d of %s: seg %s / %s..." % (count_folded_ts, N_cands_to_fold, obs, seg, ck), ; sys.stdout.flush()
+                                            #print "FOLDING CANDIDATE TIMESERIES %d/%d of %s: seg %s / %s..." % (count_folded_ts, N_cands_to_fold, obs, seg, ck), ; sys.stdout.flush()
                                             tstart_folding_cand_ts = time.time()
                                             file_to_fold = os.path.join(dir_dedispersion, obs, seg, ck, candidate.filename.split("_ACCEL")[0] + ".dat" )
-                                            flag_remove_dat_after_folding = 0
-                                            if os.path.exists(file_to_fold):
+                                            #if os.path.exists(file_to_fold):
                                                     
-                                                    fold_candidate(work_dir_candidate_folding,  
-                                                                                LOG_basename, 
-                                                                                LOG_dir,
-                                                                                pm_config.list_Observations.file_abspath,
-                                                                                dir_dedispersion,
-                                                                                obs,
-                                                                                seg,
-                                                                                ck,
-                                                                                pm_config.list_Observations.T_obs_s,
-                                                                                candidate,
-                                                                                pm_config.ignorechan_list,
-                                                                                pm_config.list_Observations.mask,
-                                                                                pm_config.prepfold_flags,
-                                                                                pm_config.presto_env,
-                                                                                verbosity_level,
-                                                                                1,
-                                                                                "timeseries",
-                                                                                pm_config.num_simultaneous_folds
-                                                    )
-                                                    tend_folding_cand_ts = time.time()
-                                                    time_taken_folding_cand_ts_s = tend_folding_cand_ts - tstart_folding_cand_ts
-                                                    print "done in %.2f s!" % (time_taken_folding_cand_ts_s) ; sys.stdout.flush()
-                                                    count_folded_ts = count_folded_ts + 1
-                                            else:
-                                                    print "dat file does not exists! Likely if you set FLAG_REMOVE_DATFILES_OF_SEGMENTS = 1 in the config file. Skipping..."
+                                            fold_candidate(work_dir_candidate_folding,  
+                                                                        LOG_basename, 
+                                                                        LOG_dir,
+                                                                        pm_config.list_Observations.file_abspath,
+                                                                        dir_dedispersion,
+                                                                        obs,
+                                                                        seg,
+                                                                        ck,
+                                                                        pm_config.list_Observations.T_obs_s,
+                                                                        candidate,
+                                                                        pm_config.ignorechan_list,
+                                                                        pm_config.list_Observations.mask,
+                                                                        pm_config.prepfold_flags,
+                                                                        pm_config.presto_env,
+                                                                        verbosity_level,
+                                                                        1,
+                                                                        "timeseries",
+                                                                        pm_config.num_simultaneous_folds
+                                            )
+                                            tend_folding_cand_ts = time.time()
+                                            time_taken_folding_cand_ts_s = tend_folding_cand_ts - tstart_folding_cand_ts
+                                            print "done in %.2f s!" % (time_taken_folding_cand_ts_s) ; sys.stdout.flush()
+                                            #count_folded_ts = count_folded_ts + 1
+                                            #else:
+                                                   # print "dat file does not exists! Likely if you set FLAG_REMOVE_DATFILES_OF_SEGMENTS = 1 in the config file. Skipping..."
                                     
             count_folded_raw = 1 
             if pm_config.flag_fold_rawdata == 1:
@@ -360,7 +362,7 @@ def main():
     if not os.path.isfile(mask_file):
         print "ERROR: Mask file %s does not exist. Currently PULSARMINER only supports folding with a mask " % mask_file
         sys.exit()
-    LOG_dir = os.path.join(pm_config.root_workdir, "LOG")
+    LOG_dir = os.path.join(pm_config.root_workdir, cluster, epoch, beam, "LOG")
     
 
     if not os.path.exists(LOG_dir): 

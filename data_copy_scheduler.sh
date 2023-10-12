@@ -3,19 +3,20 @@
 USER="vishnu"
 HOST="archive"
 #DATA_DIR="/p/MFR/MEERKAT/TRAPUM/TRAPUM_517/TRAPUM/SCI-20180923-MK-04/J1740-5340A/2020-10-20-15:40:16/1284/"
-#DATA_DIR="/p/MFR/MEERKAT/TRAPUM/TRAPUM_517/TRAPUM/SCI-20180923-MK-04/J1740-5340A/2020-11-05-10:13:37/1284/"
+DATA_DIR="/p/MFR/MEERKAT/TRAPUM/TRAPUM_517/TRAPUM/SCI-20180923-MK-04/J1740-5340A/2020-11-05-10:13:37/1284/"
 #DATA_DIR="/p/MFR/MEERKAT/TRAPUM/TRAPUM_518/TRAPUM/SCI-20180923-MK-04/J1740-5340A/2020-11-05-10:13:37/1284/"
-DATA_DIR="/p/MFR/MEERKAT/TRAPUM/TRAPUM_511/TRAPUM/SCI-20180923-MK-04/NGC_6441/2020-07-09-17:33:18/1284/"
-#OUTPUT_DIR="/hercules/scratch/vishnu/TRAPUM/observations/NGC6397/20201105/"
-OUTPUT_DIR="/hercules/scratch/vishnu/TRAPUM/observations/NGC6441/20200709/"
+#DATA_DIR="/p/MFR/MEERKAT/TRAPUM/TRAPUM_511/TRAPUM/SCI-20180923-MK-04/NGC_6441/2020-07-09-17:33:18/1284/"
+OUTPUT_DIR="/hercules/scratch/vishnu/TRAPUM/observations/NGC6397/20201105/"
+#OUTPUT_DIR="/hercules/scratch/vishnu/TRAPUM/observations/NGC6441/20200709/"
 filtool_img="/u/vishnu/singularity_images/pulsarx_latest.sif"
 filtool_cmd="filtool -t 12 --telescope meerkat -z zdot --cont"
-cluster="NGC6441"
-epoch="20200709"
+cluster="NGC6397"
+epoch="20201105"
 code_dir="/hercules/scratch/vishnu/SLURM_PULSARMINER/"
 #pm_config_file="NGC6397_20201020_accel_search.config"
-pm_config_file="NGC6397_20201105_accel_search_only.config"
-PROCESSED_FILE="${code_dir}processed_dirs_NGC6441_20200709.txt"
+#pm_config_file="NGC6397_20201105_accel_search_only.config"
+pm_config_file="NGC6397_test.config"
+PROCESSED_FILE="${code_dir}processed_dirs_NGC6397_20201105.txt"
 
 mkdir -p $OUTPUT_DIR
 
@@ -106,9 +107,8 @@ do
            rm -f $file
        fi
     done
-
     # Sleep for 4 hours 
-    sleep 4h
+    #sleep 4h
 
 done
 

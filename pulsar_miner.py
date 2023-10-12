@@ -472,17 +472,42 @@ def fold_candidate(work_dir, LOG_basename, LOG_dir, raw_datafile, dir_dedispersi
         else:
                 flag_ignorechan = ""
 
-        
+        #Write scripts for timeseries folds
         if what_fold=="timeseries":
-                file_to_fold = os.path.join(dir_dedispersion, obs, seg, ck, cand.filename.split("_ACCEL")[0] + ".dat" )
-                cmd_prepfold = "prepfold %s -noxwin -accelcand %d -accelfile %s/%s.cand -o ts_fold_%s_%s_%s_DM%.2f_%s   %s" % (other_flags_prepfold, cand.candnum, dir_accelfile, cand.filename, obs, seg, ck, cand.DM, str_zmax_wmax, file_to_fold)
-                execute_and_log(cmd_prepfold, work_dir, log_abspath, dict_env, flag_LOG_append)
+                file_script_timeseries = "script_fold_timeseries.txt"
+                file_script_timeseries_abspath = "%s/%s" % (work_dir, file_script_timeseries)
+                file_script_timeseries = open(file_script_timeseries_abspath, "a")
+                full_length_timeseries_basename = obs + "_full_" + "ck00_" + "DM%.2f" % (cand.DM) + ".dat"
+                birdie_directory = dir_dedispersion.replace("03_DEDISPERSION", "02_BIRDIES")
+                #file_to_fold = os.path.join(dir_dedispersion, obs, seg, ck, cand.filename.split("_ACCEL")[0] + ".dat" )
+                file_to_fold = os.path.join(dir_dedispersion, obs, "full", "ck00", full_length_timeseries_basename)
+                
+                zero_dm_filename = os.path.join(birdie_directory, obs + "_DM00.00.dat")
+                if candidate.p > 0.1:
+                        other_flags_prepfold += " -slow "
+                if seg == "full":
+                    cmd_prepfold = "prepfold %s -noxwin -fixchi -accelcand %d -accelfile %s/%s.cand -o ts_fold_%s_%s_%s_DM%.2f_%s   %s" % (other_flags_prepfold, cand.candnum, dir_accelfile, cand.filename, obs, seg, ck, cand.DM, str_zmax_wmax, file_to_fold)
+                    zero_dm_cmd_prepfold = "prepfold %s -noxwin -fixchi -accelcand %d -accelfile %s/%s.cand -o ts_fold_%s_%s_%s_DM%.2f_%s_zerodm   %s" % (other_flags_prepfold, cand.candnum, dir_accelfile, cand.filename, obs, seg, ck, cand.DM, str_zmax_wmax, zero_dm_filename)
+                else:
+                    segment_min = np.float(seg.replace("m", ""))
+                    i_chunk = int(ck.replace("ck", ""))
+                    T_obs_min = T_obs_s / 60.
+                    start_frac = (i_chunk * segment_min) / T_obs_min
+                    end_frac   = ((i_chunk + 1) * segment_min) / T_obs_min
+
+                    cmd_prepfold = "prepfold %s -noxwin -fixchi -start %.5f -end %.5f -accelcand %d -accelfile %s/%s.cand -o ts_fold_%s_%s_%s_DM%.2f_%s   %s" % (other_flags_prepfold, start_frac, end_frac, cand.candnum, dir_accelfile, cand.filename, obs, seg, ck, cand.DM, str_zmax_wmax, file_to_fold)
+                    zero_dm_cmd_prepfold = "prepfold %s -noxwin -fixchi -start %.5f -end %.5f -accelcand %d -accelfile %s/%s.cand -o ts_fold_%s_%s_%s_DM%.2f_%s_zerodm   %s" % (other_flags_prepfold, start_frac, end_frac, cand.candnum, dir_accelfile, cand.filename, obs, seg, ck, cand.DM, str_zmax_wmax, zero_dm_filename)
+                #execute_and_log(cmd_prepfold, work_dir, log_abspath, dict_env, flag_LOG_append)
+                file_script_timeseries.write("%s\n" % cmd_prepfold)
+                file_script_timeseries.write("%s\n" % zero_dm_cmd_prepfold)
+                file_script_timeseries.close()
+
         elif what_fold=="rawdata":
                 file_to_fold = raw_datafile
                 if candidate.p > 0.1:
                         other_flags_prepfold += " -slow "
                 if seg == "full":
-                        cmd_prepfold = "prepfold %s -noxwin -accelcand %d -accelfile %s/%s.cand -dm %.2f %s -mask %s -o raw_fold_%s_%s_%s_DM%.2f_%s    %s" % (other_flags_prepfold, cand.candnum, dir_accelfile, cand.filename, cand.DM, flag_ignorechan, mask, obs, seg, ck, cand.DM, str_zmax_wmax, file_to_fold)
+                        cmd_prepfold = "prepfold %s -noxwin -fixchi -accelcand %d -accelfile %s/%s.cand -dm %.2f %s -mask %s -o raw_fold_%s_%s_%s_DM%.2f_%s    %s" % (other_flags_prepfold, cand.candnum, dir_accelfile, cand.filename, cand.DM, flag_ignorechan, mask, obs, seg, ck, cand.DM, str_zmax_wmax, file_to_fold)
                 else:
                         segment_min = np.float(seg.replace("m", ""))
                         i_chunk = int(ck.replace("ck", ""))
@@ -490,7 +515,7 @@ def fold_candidate(work_dir, LOG_basename, LOG_dir, raw_datafile, dir_dedispersi
                         start_frac = (i_chunk * segment_min) / T_obs_min
                         end_frac   = ((i_chunk + 1) * segment_min) / T_obs_min
 
-                        cmd_prepfold = "prepfold %s -start %.5f -end %.5f -noxwin -accelcand %d -accelfile %s/%s.cand -dm %.2f %s -mask %s -o raw_fold_%s_%s_%s_DM%.2f_%s    %s" % (other_flags_prepfold, start_frac, end_frac, cand.candnum, dir_accelfile, cand.filename, cand.DM, flag_ignorechan, mask, obs, seg, ck, cand.DM, str_zmax_wmax, file_to_fold)
+                        cmd_prepfold = "prepfold %s -start %.5f -end %.5f -noxwin -fixchi -accelcand %d -accelfile %s/%s.cand -dm %.2f %s -mask %s -o raw_fold_%s_%s_%s_DM%.2f_%s    %s" % (other_flags_prepfold, start_frac, end_frac, cand.candnum, dir_accelfile, cand.filename, cand.DM, flag_ignorechan, mask, obs, seg, ck, cand.DM, str_zmax_wmax, file_to_fold)
 
                 file_script_fold.write("%s\n" % cmd_prepfold)
                 if verbosity_level >= 2:
@@ -502,6 +527,7 @@ def fold_candidate(work_dir, LOG_basename, LOG_dir, raw_datafile, dir_dedispersi
                 print "fold_candidates:: cmd_prepfold = %s" % (cmd_prepfold)
 
         file_script_fold.close()
+        
 
 
 

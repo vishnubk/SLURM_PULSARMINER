@@ -10,7 +10,7 @@ pm_config=$7
 fold_timeseries=0
 rfifind_mask=${previous_results}/01_RFIFIND
 search_results=${previous_results}/03_DEDISPERSION
-
+birdie_directory=${previous_results}/02_BIRDIES
 #Cleaning up any prior runs
 #rm -rf $working_dir
 
@@ -37,6 +37,7 @@ else
 
 fi
 
+rsync -Pav $birdie_directory $working_dir
 
 singularity exec -H $HOME:/home1 -B $data_dir:$data_dir $sing_image python ${code_dir}/run_sifting_and_create_fold_script.py -p $pm_config -o $raw_data -r $working_dir
 
@@ -48,4 +49,4 @@ rsync -Pav ${working_dir}/04_SIFTING $previous_results
 rsync -Pav ${working_dir}/05_FOLDING $previous_results
 
 # #Clean Up
-#rm -rf $working_dir
+rm -rf $working_dir

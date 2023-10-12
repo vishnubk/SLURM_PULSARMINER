@@ -8,7 +8,6 @@ ml_model_dir="$code_dir/ML_MODELS"
 meta_file=$5
 utc="${meta_file%.*}"
 
-
 dir="$code_dir/$cluster/$epoch/$beam"
 
 
