@@ -90,7 +90,8 @@ singularity exec -H $HOME:/home1 -B $data_dir:$data_dir $sing_image python ${cod
 
 
 
-rsync -Pav --exclude='*.pfd*' --exclude='LOG*' --exclude='pm_run_multithread' ${working_dir}/05_FOLDING_TIMESERIES $previous_results
+#rsync -Pav --exclude='*.pfd*' --exclude='LOG*' --exclude='pm_run_multithread' ${working_dir}/05_FOLDING_TIMESERIES $previous_results
+rsync -Pav --exclude='pm_run_multithread' ${working_dir}/05_FOLDING_TIMESERIES $previous_results
 rsync -Pav ${working_dir}/05_FOLDING $previous_results
 
 #Clean Up
