@@ -23,3 +23,7 @@ NGC441/
 test.config
 NGC6441.config
 relaunch_slurm_jobs*.sh
+update_processing_scripts.sh
+submit_timeseries_jobs.sh
+test_relaunch_script.sh
+BACKUP_processed_dirs_NGC6397_20201105.txt
