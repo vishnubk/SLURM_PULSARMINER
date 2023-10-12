@@ -224,7 +224,6 @@ while true; do
             done
 
             all_job_ids=$(IFS=, ; echo "${job_ids[*]}")
-            exit 0
             
             # Wait for all jobs to complete
             while true; do
