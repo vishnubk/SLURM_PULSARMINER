@@ -54,8 +54,8 @@ if __name__ == '__main__':
         alpha_results.append([os.path.basename(candidate_dm_file), zero_dm_sigma, candidate_dm_sigma, alpha])
 
     alpha_df = pd.DataFrame(alpha_results, columns=['candidate_dm_file', 'ts_zero_dm_fold_sigma', 'ts_candidate_dm_fold_sigma', 'alpha'])
-    print(alpha_df['alpha'])
-    print(alpha_df['alpha'].min(), alpha_df['alpha'].max())
+    #print(alpha_df['alpha'])
+    #print(alpha_df['alpha'].min(), alpha_df['alpha'].max())
     alpha_df.to_csv(results_dir + '/' + 'alpha_results.csv', index=False)
     #alpha_df = pd.read_csv(results_dir + '/' + 'alpha_results.csv')
    
