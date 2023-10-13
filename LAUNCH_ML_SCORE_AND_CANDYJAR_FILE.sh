@@ -13,6 +13,7 @@ directories="$code_dir/$cluster/$epoch/"
 slurmids=""
 for dir in $directories*; do
     beam=$(basename $dir)
+    #if [ -d "$dir" ] && [[ $beam == cf* || $beam == if* ]] && [ $beam == "cfbf00002" ]; then
     if [ -d "$dir" ] && [[ $beam == cf* || $beam == if* ]]; then
         fold_dir=$dir/05_FOLDING/${cluster}_${epoch}_${beam}/
         if [ -d "$fold_dir" ]; then
@@ -20,7 +21,7 @@ for dir in $directories*; do
             num_pfd_files=$(ls "$fold_dir"/*.pfd 2>/dev/null | wc -l)
             if [ "$num_pfd_files" -ge 1 ]; then
                 echo "Submitting job for $dir"
-                score=$(sbatch --parsable --job-name=score_${cluster} --output="$logs/ml_score_${cluster}_${epoch}_${beam}.out" --error="$logs/ml_score_${cluster}_${epoch}_${beam}.err" -p long.q --time 1-00:00:00 --export=ALL --cpus-per-task=48 --mem=350GB --wrap="${code_dir}/SCORE_BEAM_WITH_ML_MODEL_PREPARE_CANDYJAR_FILES.sh $cluster $epoch $beam $code_dir $meta_file")
+                score=$(sbatch --parsable --job-name=score_${cluster} --output="$logs/ml_score_${cluster}_${epoch}_${beam}.out" --error="$logs/ml_score_${cluster}_${epoch}_${beam}.err" -p short.q --time 4:00:00 --export=ALL --cpus-per-task=48 --mem=350GB --wrap="${code_dir}/SCORE_BEAM_WITH_ML_MODEL_PREPARE_CANDYJAR_FILES.sh $cluster $epoch $beam $code_dir $meta_file")
                 slurmids="$slurmids:$score"
             fi
         fi
@@ -28,7 +29,7 @@ for dir in $directories*; do
     fi
 done
 
-
+exit 0
 while true; do
   # Count the number of jobs in the queue with names starting with "score_$cluster"
   job_count=$(squeue -n "score_${cluster}" --noheader | wc -l)

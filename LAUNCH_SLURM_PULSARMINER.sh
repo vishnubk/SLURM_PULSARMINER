@@ -194,7 +194,7 @@ check_job_submission_limit () {
 
 singularity exec -H $HOME:/home1 -B $mount_path:$mount_path $singularity_image_path python ${code_directory}/create_slurm_jobs.py -s ${code_directory}/$slurm_config_file -p ${code_directory}/$pm_config_file -o $obs_file 
 
-#exit 0
+exit 0
 source ${code_directory}/slurm_jobs_${CLUSTER}_${EPOCH}_${BEAM}.sh
 
 

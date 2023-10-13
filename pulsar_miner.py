@@ -1017,7 +1017,7 @@ def periodicity_search_FFT(work_dir, LOG_basename, zapfile, segment_label, chunk
 
 
 
-def make_birds_file(ACCEL_0_filename, out_dir, log_filename, width_Hz, flag_grow=1, flag_barycentre=0, sigma_birdies_threshold=4, verbosity_level=0):
+def make_birds_file(ACCEL_0_filename, birds_filename, out_dir, log_filename, width_Hz, flag_grow=1, flag_barycentre=0, sigma_birdies_threshold=4, verbosity_level=0):
         infile_nameonly = os.path.basename(ACCEL_0_filename)
         infile_basename = infile_nameonly.replace("_ACCEL_0", "")
         birds_filename = ACCEL_0_filename.replace("_ACCEL_0", ".birds")
@@ -1096,7 +1096,11 @@ def make_zaplist(fft_infile, out_dir, LOG_dir, LOG_basename, common_birdies_file
                 if verbosity_level >= 2:
                         print "fourier_bin_width_Hz: ", fourier_bin_width_Hz
                         print "Doing make_birds_file"; sys.stdout.flush()
-                birds_filename = make_birds_file(ACCEL_0_filename=ACCEL_0_filename, out_dir=out_dir, log_filename=log_abspath, width_Hz=fourier_bin_width_Hz, flag_grow=1, flag_barycentre=0, sigma_birdies_threshold=4, verbosity_level=0)
+
+                birds_filename = ACCEL_0_filename.replace("_ACCEL_0", ".birds")
+                if os.path.isfile(ACCEL_0_filename):
+                        make_birds_file(ACCEL_0_filename=ACCEL_0_filename, birds_filename=birds_filename, out_dir=out_dir, log_filename=log_abspath, width_Hz=fourier_bin_width_Hz, flag_grow=1, flag_barycentre=0, sigma_birdies_threshold=4, verbosity_level=0)
+                #birds_filename = make_birds_file(ACCEL_0_filename=ACCEL_0_filename, out_dir=out_dir, log_filename=log_abspath, width_Hz=fourier_bin_width_Hz, flag_grow=1, flag_barycentre=0, sigma_birdies_threshold=4, verbosity_level=0)
                 if verbosity_level >= 2:
                         print "Done make_birds_file!"; sys.stdout.flush()
                 
